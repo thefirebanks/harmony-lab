@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors - Warm dark theme */
+  --background: #0f0f14;
+  --background-elevated: #1a1a24;
+  --background-hover: #252532;
+  
+  --foreground: #f5f5f7;
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  
+  --accent: #f4a261;
+  --accent-hover: #e8975a;
+  --accent-muted: rgba(244, 162, 97, 0.15);
+  
+  --success: #4ade80;
+  --success-muted: rgba(74, 222, 128, 0.15);
+  
+  --error: #f87171;
+  --error-muted: rgba(248, 113, 113, 0.15);
+  
+  /* Scale degree colors */
+  --degree-1: #fef3c7;
+  --degree-2: #c4b5fd;
+  --degree-3: #bbf7d0;
+  --degree-4: #fed7aa;
+  --degree-5: #fca5a5;
+  --degree-6: #93c5fd;
+  --degree-7: #d4d4d8;
+  
+  /* Spacing */
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background-elevated: var(--background-elevated);
+  --color-background-hover: var(--background-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-error: var(--error);
+  --color-error-muted: var(--error-muted);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
 }
+
+pre,
+code {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Degree-specific colors for chord buttons */
+.degree-1 { --chord-color: var(--degree-1); }
+.degree-2 { --chord-color: var(--degree-2); }
+.degree-3 { --chord-color: var(--degree-3); }
+.degree-4 { --chord-color: var(--degree-4); }
+.degree-5 { --chord-color: var(--degree-5); }
+.degree-6 { --chord-color: var(--degree-6); }
+.degree-7 { --chord-color: var(--degree-7); }
