@@ -5,7 +5,7 @@
 
 import type { TonicTargetRound, TonicTargetAnswer, TonicTargetSettings, TargetDegree, ChordOption } from './types';
 import type { ValidationResult } from '@/lib/game-engine/types';
-import type { Key, Progression } from '@/lib/music/types';
+import type { Key, Progression, ScaleDegree } from '@/lib/music/types';
 import {
   getRandomKey,
   buildTwoFiveOne,
@@ -76,10 +76,10 @@ function buildChordOptions(key: Key, targetDegree: TargetDegree, progression: Pr
     maj: 5,
     min: 6,
   };
-  const getColorDegree = (root: string, quality: string): number => {
+  const getColorDegree = (root: string, quality: string): ScaleDegree => {
     const rootIndex = getNoteIndex(root as never);
     const qualityOffset = qualityOffsets[quality] ?? 0;
-    return ((rootIndex + qualityOffset) % 7) + 1;
+    return (((rootIndex + qualityOffset) % 7) + 1) as ScaleDegree;
   };
 
   const diatonicChords = getAllDiatonicChords(key.tonic).map((chord) => ({
