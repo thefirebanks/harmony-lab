@@ -60,6 +60,31 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'harmony-lab-settings',
+      merge: (persisted, current) => {
+        const persistedState = persisted as Partial<SettingsState> | undefined;
+        const merged = {
+          ...current,
+          ...persistedState,
+        } as SettingsState;
+        const tonicTarget = {
+          ...current.tonicTarget,
+          ...(persistedState?.tonicTarget ?? {}),
+        };
+        if (tonicTarget.roundsPerSession === ('infinite' as never) || !Number.isFinite(tonicTarget.roundsPerSession)) {
+          tonicTarget.roundsPerSession = current.tonicTarget.roundsPerSession;
+        }
+        if (!tonicTarget.sessionMode) {
+          tonicTarget.sessionMode = current.tonicTarget.sessionMode;
+        }
+        if (!tonicTarget.timeLimitSeconds) {
+          tonicTarget.timeLimitSeconds = current.tonicTarget.timeLimitSeconds;
+        }
+        if (tonicTarget.showRomanNumerals === undefined) {
+          tonicTarget.showRomanNumerals = current.tonicTarget.showRomanNumerals;
+        }
+        merged.tonicTarget = tonicTarget;
+        return merged;
+      },
       partialize: (state) => ({
         masterVolume: state.masterVolume,
         tonicTarget: state.tonicTarget,

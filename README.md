@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harmony Lab
+
+A personal platform for music practice games, designed to build functional harmony intuition through focused, beautiful, non-gamified exercises.
+
+## Current Game: Tonic Target Practice
+
+**The Problem**: Musicians with perfect pitch often process harmony through absolute note identification, then calculate intervals/function. This is slow and doesn't build intuition.
+
+**The Solution**: Rapid, randomized progression drills that make absolute pitch useless (because the key changes constantly) and reinforce the *feeling* of the progression.
+
+### Game Flow
+1. App displays a random key and target degree (I or vii)
+2. User hears the tonic chord as reference
+3. User selects three chords to build the progression
+4. App plays back their selection
+5. Feedback: correct/incorrect with visual + audio confirmation
+6. Repeat in a new random key
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | Bun |
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript (strict mode) |
+| Styling | Tailwind CSS |
+| Audio | Tone.js + Salamander Piano Samples |
+| State | Zustand |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+# Install dependencies
+bun install
+
+# Run development server
 bun dev
+
+# Build for production
+bun run build
+
+# Run tests
+bun test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── games/
+│   │   └── tonic-target/   # Tonic Target game page
+│   └── page.tsx            # Home page
+├── components/
+│   ├── ui/                 # Shared UI primitives (Button, Card)
+│   ├── shared/             # Platform-wide components (GameShell, TheoryCard)
+│   └── games/
+│       └── tonic-target/   # Game-specific components
+├── lib/
+│   ├── music/              # Music theory primitives (scales, chords, keys)
+│   ├── audio/              # Tone.js audio engine
+│   └── game-engine/        # Generic game types
+├── games/
+│   └── tonic-target/       # Game logic, config, types
+├── stores/                 # Zustand stores
+└── hooks/                  # Custom React hooks
+```
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+The platform is designed to support multiple music practice games sharing:
+- **Music Theory Core** (`lib/music/`): Pure functions for scales, chords, progressions
+- **Audio Engine** (`lib/audio/`): Tone.js wrapper for chord/progression playback
+- **UI Components** (`components/shared/`): Reusable game UI elements
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Keyboard Shortcuts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Key | Action |
+|-----|--------|
+| `Space` | Submit answer / Next round |
+| `1-7` | Select chord by degree |
+| `R` | Hear tonic reference |
+| `P` | Play current selection |
+| `Backspace` | Clear last selection |
 
-## Deploy on Vercel
+## Difficulty Levels
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Level | Key Shown | Chord Display | Colors | Auto Tonic |
+|-------|-----------|---------------|--------|------------|
+| 1 | Yes | Names (Dm7) | Yes | Yes |
+| 2 | Yes | Names + Degrees | Yes | Yes |
+| 3 | Yes | Degrees only (ii7) | Yes | Yes |
+| 4 | Yes | Degrees only | No | Yes |
+| 5 | No | Degrees only | No | No |

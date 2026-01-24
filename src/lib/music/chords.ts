@@ -34,10 +34,21 @@ export function createChord(root: NoteName, quality: ChordQuality, degree: Scale
  */
 export function getDiatonicChord(tonic: NoteName, degree: ScaleDegree): Chord {
   const scale = getMajorScale(tonic);
-  const root = scale[degree - 1]; // Convert from 1-indexed
+  const root = scale[degree - 1];
   const quality = MAJOR_KEY_CHORD_QUALITIES[degree];
-  
-  return createChord(root, quality, degree);
+
+  const chord = createChord(root, quality, degree);
+
+  // Debug logging for A# major I chord
+  if (tonic === 'A#' && degree === 1) {
+    console.log('[A# Debug] Key:', tonic, 'Degree:', degree);
+    console.log('[A# Debug] Scale:', scale);
+    console.log('[A# Debug] Root:', root, 'Quality:', quality);
+    const chordNotes = getChordNotes(root, quality);
+    console.log('[A# Debug] Chord notes:', chordNotes);
+  }
+
+  return chord;
 }
 
 /**

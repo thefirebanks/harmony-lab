@@ -16,6 +16,7 @@ export {
   getNoteIndex,
   getNoteAtIndex,
   getScaleDegree,
+  getMinorScaleDegree,
   getInterval,
   transposeNote,
 } from './scales';

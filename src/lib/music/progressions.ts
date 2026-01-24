@@ -6,6 +6,7 @@
 import type { Key, Progression, Chord, Answer, NoteName } from './types';
 import { getDiatonicChord } from './chords';
 import { getMajorScale } from './scales';
+import { getChordDisplayName } from './chords';
 
 /**
  * Build a ii-V-I progression in a given key
@@ -52,21 +53,20 @@ export function validateProgression(correctProgression: Progression, answer: Ans
  * Get the progression display string (e.g., "Dm7 → G7 → Cmaj7")
  */
 export function getProgressionDisplayString(progression: Progression): string {
-  const chordNames = [
-    `${progression.ii.root}m7`,
-    `${progression.V.root}7`,
-    `${progression.I.root}maj7`,
-  ];
-  return chordNames.join(' → ');
+  return [
+    getChordDisplayName(progression.ii),
+    getChordDisplayName(progression.V),
+    getChordDisplayName(progression.I),
+  ].join(' → ');
 }
 
 /**
  * Get progression for display from an Answer (handling null values)
  */
 export function getAnswerDisplayString(answer: Answer): string {
-  const ii = answer.ii ? `${answer.ii.root}m7` : '___';
-  const V = answer.V ? `${answer.V.root}7` : '___';
-  const I = answer.I ? `${answer.I.root}maj7` : '___';
+  const ii = answer.ii ? getChordDisplayName(answer.ii) : '___';
+  const V = answer.V ? getChordDisplayName(answer.V) : '___';
+  const I = answer.I ? getChordDisplayName(answer.I) : '___';
   return `${ii} → ${V} → ${I}`;
 }
 

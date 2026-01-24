@@ -1,12 +1,14 @@
 /**
  * Progression Slots Component
- * Shows the user's current ii-V-I selection
+ * Shows the user's current selection for the target progression
  */
 
 'use client';
 
 import type { Chord } from '@/lib/music/types';
+import type { TargetDegree } from '@/games/tonic-target/types';
 import { getChordDisplayName } from '@/lib/music';
+import { getTargetSlotLabels } from '@/games/tonic-target/logic';
 
 interface ProgressionSlotsProps {
   answer: {
@@ -16,14 +18,24 @@ interface ProgressionSlotsProps {
   };
   onSlotClick: (slot: 'ii' | 'V' | 'I') => void;
   disabled: boolean;
+  targetDegree?: TargetDegree;
 }
 
-export function ProgressionSlots({ answer, onSlotClick, disabled }: ProgressionSlotsProps) {
-  const slots: Array<{ key: 'ii' | 'V' | 'I'; label: string }> = [
-    { key: 'ii', label: 'ii' },
-    { key: 'V', label: 'V' },
-    { key: 'I', label: 'I' },
+/**
+ * Get slot labels based on target degree
+ * Each target has a functional progression that leads to it
+ */
+function getSlotLabels(targetDegree: TargetDegree): Array<{ key: 'ii' | 'V' | 'I'; label: string }> {
+  const labels = getTargetSlotLabels(targetDegree);
+  return [
+    { key: 'ii', label: labels.ii },
+    { key: 'V', label: labels.V },
+    { key: 'I', label: labels.I },
   ];
+}
+
+export function ProgressionSlots({ answer, onSlotClick, disabled, targetDegree = 1 }: ProgressionSlotsProps) {
+  const slots = getSlotLabels(targetDegree);
 
   return (
     <div className="flex items-center justify-center gap-2">

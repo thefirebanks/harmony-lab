@@ -5,20 +5,24 @@
 
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useTonicTargetStore, useSettingsStore, useAudioStore } from '@/stores';
 import { getAnswerDisplayString } from '@/lib/music';
-import type { ScaleDegree } from '@/lib/music/types';
+import type { TargetDegree } from '@/games/tonic-target/types';
 import { KeyDisplay } from './KeyDisplay';
 import { ChordGrid } from './ChordGrid';
 import { ProgressionSlots } from './ProgressionSlots';
 import { PlaybackControls } from './PlaybackControls';
 import { FeedbackDisplay } from './FeedbackDisplay';
 import { SessionStatsDisplay } from './SessionStats';
+import { SessionSummary } from './SessionSummary';
 import { Card } from '@/components/ui';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
-export function TonicTargetGame() {
+interface TonicTargetGameProps {
+  onViewProgress: () => void;
+}
+
+export function TonicTargetGame({ onViewProgress }: TonicTargetGameProps) {
   const {
     round,
     answer,
@@ -27,12 +31,16 @@ export function TonicTargetGame() {
     theoryCard,
     isPlaying,
     showFeedback,
+    isSessionComplete,
     startNewRound,
     selectChord,
     clearSlot,
     submitAnswer,
+    skipRound,
     nextRound,
+    resetSession,
     playTonic,
+    playTarget,
     playUserAnswer,
     playCorrectAnswer,
   } = useTonicTargetStore();
@@ -61,36 +69,43 @@ export function TonicTargetGame() {
   const canSubmit = answer.ii !== null && answer.V !== null && answer.I !== null;
   const canPlayAnswer = answer.ii !== null || answer.V !== null || answer.I !== null;
 
-  const handleSelectDegree = useCallback(
-    (degree: ScaleDegree) => {
-      const chord = round?.availableChords.find((item) => item.degree === degree);
-      if (chord) {
-        selectChord(chord);
-      }
-    },
-    [round, selectChord]
-  );
+  // Get target degree display name
+  const getTargetDegreeLabel = (degree: TargetDegree): string => {
+    const labels: Record<TargetDegree, string> = {
+      1: 'I (Tonic)',
+      2: 'ii',
+      3: 'iii',
+      4: 'IV',
+      5: 'V',
+      6: 'vi',
+    };
+    return labels[degree];
+  };
 
-  const handleClearLast = useCallback(() => {
-    if (answer.I) {
-      clearSlot('I');
-    } else if (answer.V) {
-      clearSlot('V');
-    } else if (answer.ii) {
-      clearSlot('ii');
-    }
-  }, [answer, clearSlot]);
+  const getTargetDegreeShortLabel = (degree: TargetDegree): string => {
+    const labels: Record<TargetDegree, string> = {
+      1: 'I',
+      2: 'ii',
+      3: 'iii',
+      4: 'IV',
+      5: 'V',
+      6: 'vi',
+    };
+    return labels[degree];
+  };
 
-  useKeyboardShortcuts({
-    enabled: true,
-    onSelectDegree: handleSelectDegree,
-    onSubmit: submitAnswer,
-    onNextRound: nextRound,
-    onHearTonic: playTonic,
-    onPlayAnswer: playUserAnswer,
-    onClearLast: handleClearLast,
-    showFeedback,
-  });
+  // Show session summary if complete
+  if (isSessionComplete) {
+    return (
+      <div className="space-y-8 py-8">
+        <SessionSummary
+          session={session}
+          onStartNewSession={resetSession}
+          onViewProgress={onViewProgress}
+        />
+      </div>
+    );
+  }
 
   if (!round) {
     return (
@@ -107,16 +122,29 @@ export function TonicTargetGame() {
         keySignature={round.key}
         showKey={showKey}
         onHearTonic={playTonic}
+        onHearTarget={playTarget}
+        targetLabel={round.targetDegree ? getTargetDegreeShortLabel(round.targetDegree) : undefined}
         isPlaying={isPlaying}
       />
 
       {/* Main game area */}
       <Card className="p-6 space-y-6">
+        {/* Target Degree Display */}
+        {round.targetDegree && (
+          <div className="text-center mb-2">
+            <span className="text-sm text-text-muted">Target: </span>
+            <span className="text-lg font-bold text-accent">
+              {getTargetDegreeLabel(round.targetDegree)}
+            </span>
+          </div>
+        )}
+
         {/* Progression Slots */}
         <ProgressionSlots
           answer={answer}
           onSlotClick={clearSlot}
           disabled={showFeedback}
+          targetDegree={round.targetDegree}
         />
 
         {/* Divider */}
@@ -140,6 +168,7 @@ export function TonicTargetGame() {
               chords={round.availableChords}
               onChordSelect={selectChord}
               showChordNames={settings.showChordNames}
+              showRomanNumerals={settings.showRomanNumerals}
               showColors={settings.showColors}
               disabled={showFeedback}
               selectedChords={answer}
@@ -150,6 +179,7 @@ export function TonicTargetGame() {
               onHearTonic={playTonic}
               onPlayAnswer={playUserAnswer}
               onSubmit={submitAnswer}
+              onSkip={skipRound}
               canSubmit={canSubmit}
               canPlayAnswer={canPlayAnswer}
               isPlaying={isPlaying}
@@ -159,7 +189,12 @@ export function TonicTargetGame() {
       </Card>
 
       {/* Session Stats */}
-      <SessionStatsDisplay session={session} />
+      <SessionStatsDisplay
+        session={session}
+        totalRounds={settings.sessionMode === 'rounds' ? settings.roundsPerSession : undefined}
+        sessionMode={settings.sessionMode}
+        timeLimitSeconds={settings.timeLimitSeconds}
+      />
     </div>
   );
 }

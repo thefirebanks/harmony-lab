@@ -3,8 +3,13 @@
  * Types specific to the Tonic Target Practice game
  */
 
-import type { Key, Progression, Answer, Chord } from '@/lib/music/types';
+import type { Key, Progression, Answer, Chord, ScaleDegree } from '@/lib/music/types';
 import type { DifficultyLevel } from '@/lib/game-engine/types';
+
+/**
+ * Target degree options
+ */
+export type TargetDegree = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * Round state for Tonic Target
@@ -12,7 +17,8 @@ import type { DifficultyLevel } from '@/lib/game-engine/types';
 export interface TonicTargetRound {
   key: Key;
   correctProgression: Progression;
-  availableChords: Chord[];
+  availableChords: ChordOption[];
+  targetDegree: TargetDegree; // Which degree we're resolving to
 }
 
 /**
@@ -21,15 +27,32 @@ export interface TonicTargetRound {
 export type TonicTargetAnswer = Answer;
 
 /**
+ * Chord option for the selection grid
+ */
+export interface ChordOption {
+  id: string;
+  chord: Chord;
+  label: string;
+  degree?: ScaleDegree;
+  colorDegree?: ScaleDegree;
+  group: 'target' | 'diatonic';
+}
+
+/**
  * Game settings
  */
 export interface TonicTargetSettings {
   difficulty: DifficultyLevel;
   showChordNames: boolean;      // false = degrees only (ii7 vs Dm7)
+  showRomanNumerals: boolean;   // show roman numeral hints
   showColors: boolean;          // Scale degree colors
   includeBassNote: boolean;     // Fuller voicings
   playbackTempo: number;        // BPM for progression playback
   autoPlayTonic: boolean;       // Play I chord automatically each round
+  targetDegrees: TargetDegree[] | 'random';  // Which degrees to target, or random
+  sessionMode: 'rounds' | 'time';
+  roundsPerSession: number;     // Number of rounds per session
+  timeLimitSeconds: number;     // Time limit for timed sessions
 }
 
 /**
@@ -38,10 +61,15 @@ export interface TonicTargetSettings {
 export const defaultTonicTargetSettings: TonicTargetSettings = {
   difficulty: 1,
   showChordNames: true,
+  showRomanNumerals: false,
   showColors: true,
   includeBassNote: true,
   playbackTempo: 100,
   autoPlayTonic: true,
+  targetDegrees: 'random',
+  sessionMode: 'rounds',
+  roundsPerSession: 10,
+  timeLimitSeconds: 600,
 };
 
 /**

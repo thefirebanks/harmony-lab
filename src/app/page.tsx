@@ -3,9 +3,45 @@
  * Game selector
  */
 
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ProfileModal } from '@/components/shared';
+import { useProfileStore } from '@/stores';
+import { getProfileImage } from '@/lib/storage/profileImage';
 
 export default function Home() {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileName = useProfileStore((state) => state.name);
+  const photoId = useProfileStore((state) => state.photoId);
+  const firstName = profileName.trim().split(/\s+/)[0];
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!photoId) {
+      setPhotoUrl(null);
+      return undefined;
+    }
+
+    getProfileImage(photoId)
+      .then((url) => {
+        if (isActive) {
+          setPhotoUrl(url);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setPhotoUrl(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [photoId]);
   const games = [
     {
       id: 'tonic-target',
@@ -31,11 +67,36 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-[var(--text-muted)]/10">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Harmony Lab</h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            Music practice games for building functional harmony intuition
-          </p>
+        <div className="max-w-4xl mx-auto px-4 py-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Harmony Lab</h1>
+            <p className="text-[var(--text-secondary)] mt-1">
+              Music practice games for building functional harmony intuition
+            </p>
+          </div>
+          <button
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center gap-2 p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--background-elevated)] transition-colors"
+            aria-label="Profile"
+            data-testid="profile-button"
+            title="Profile"
+          >
+            <span className="h-7 w-7 rounded-full bg-[var(--background-elevated)] border border-[var(--text-muted)]/20 flex items-center justify-center overflow-hidden">
+              {photoUrl ? (
+                <img src={photoUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 12a4 4 0 100-8 4 4 0 000 8zm7 8a7 7 0 10-14 0"
+                  />
+                </svg>
+              )}
+            </span>
+            {firstName && <span className="text-sm text-[var(--text-secondary)]">Hi {firstName}</span>}
+          </button>
         </div>
       </header>
 
@@ -85,6 +146,7 @@ export default function Home() {
           Harmony Lab - Build your harmonic intuition
         </div>
       </footer>
+      <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 }

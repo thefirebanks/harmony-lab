@@ -4,14 +4,20 @@
 
 import { describe, expect, test } from 'bun:test';
 import { generateRound, validateAnswer, getNextSlot, isAnswerComplete } from '@/games/tonic-target/logic';
-import { defaultTonicTargetSettings } from '@/games/tonic-target/types';
+import { defaultTonicTargetSettings, type TonicTargetSettings } from '@/games/tonic-target/types';
 import { getMajorScale } from '@/lib/music';
 import type { TonicTargetAnswer } from '@/games/tonic-target/types';
+
+// Settings for testing target degree 1 (tonic)
+const tonicTargetSettings: TonicTargetSettings = {
+  ...defaultTonicTargetSettings,
+  targetDegrees: [1],
+};
 
 describe('generateRound', () => {
   test('generates valid round with all required fields', () => {
     const round = generateRound(defaultTonicTargetSettings);
-    
+
     expect(round.key).toBeDefined();
     expect(round.key.tonic).toBeDefined();
     expect(round.key.mode).toBe('major');
@@ -19,41 +25,47 @@ describe('generateRound', () => {
     expect(round.availableChords).toBeDefined();
   });
 
-  test('correct progression has proper chord qualities', () => {
-    const round = generateRound(defaultTonicTargetSettings);
-    
+  test('target degree is in range 1-6', () => {
+    for (let i = 0; i < 20; i++) {
+      const round = generateRound(defaultTonicTargetSettings);
+      expect([1, 2, 3, 4, 5, 6]).toContain(round.targetDegree);
+    }
+  });
+
+  test('correct progression has proper chord qualities for target 1', () => {
+    const round = generateRound(tonicTargetSettings);
+
     expect(round.correctProgression.ii.quality).toBe('min7');
     expect(round.correctProgression.V.quality).toBe('7');
     expect(round.correctProgression.I.quality).toBe('maj7');
   });
 
-  test('ii chord is built on 2nd degree', () => {
-    // Test multiple times due to randomness
+  test('ii chord is built on 2nd degree for target 1', () => {
     for (let i = 0; i < 20; i++) {
-      const round = generateRound(defaultTonicTargetSettings);
+      const round = generateRound(tonicTargetSettings);
       const scale = getMajorScale(round.key.tonic);
       expect(round.correctProgression.ii.root).toBe(scale[1]);
     }
   });
 
-  test('V chord is built on 5th degree', () => {
+  test('V chord is built on 5th degree for target 1', () => {
     for (let i = 0; i < 20; i++) {
-      const round = generateRound(defaultTonicTargetSettings);
+      const round = generateRound(tonicTargetSettings);
       const scale = getMajorScale(round.key.tonic);
       expect(round.correctProgression.V.root).toBe(scale[4]);
     }
   });
 
-  test('I chord is the tonic', () => {
+  test('I chord is the tonic for target 1', () => {
     for (let i = 0; i < 20; i++) {
-      const round = generateRound(defaultTonicTargetSettings);
+      const round = generateRound(tonicTargetSettings);
       expect(round.correctProgression.I.root).toBe(round.key.tonic);
     }
   });
 
-  test('available chords has 7 diatonic chords', () => {
+  test('available chords includes diatonic chords and target options', () => {
     const round = generateRound(defaultTonicTargetSettings);
-    expect(round.availableChords).toHaveLength(7);
+    expect(round.availableChords.length).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -111,7 +123,7 @@ describe('validateAnswer', () => {
   test('provides helpful feedback on incorrect', () => {
     const round = generateRound(defaultTonicTargetSettings);
     const answer: TonicTargetAnswer = {
-      ii: { root: 'A', quality: 'min7', degree: 6 }, // Wrong chord
+      ii: { root: 'A', quality: 'min7', degree: 6 },
       V: round.correctProgression.V,
       I: round.correctProgression.I,
     };

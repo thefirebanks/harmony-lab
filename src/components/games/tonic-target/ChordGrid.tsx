@@ -6,12 +6,16 @@
 'use client';
 
 import type { Chord, ScaleDegree } from '@/lib/music/types';
-import { getChordDisplayName, DEGREE_TO_ROMAN } from '@/lib/music';
+import type { ChordOption } from '@/games/tonic-target/types';
+import { getChordDisplayName, getSimpleVoicing, getSimpleVoicingWithBass, DEGREE_TO_ROMAN } from '@/lib/music';
+import { playChord } from '@/lib/audio';
+import { useSettingsStore } from '@/stores';
 
 interface ChordGridProps {
-  chords: Chord[];
+  chords: ChordOption[];
   onChordSelect: (chord: Chord) => void;
   showChordNames: boolean;
+  showRomanNumerals: boolean;
   showColors: boolean;
   disabled: boolean;
   selectedChords: {
@@ -46,10 +50,27 @@ export function ChordGrid({
   chords,
   onChordSelect,
   showChordNames,
+  showRomanNumerals,
   showColors,
   disabled,
   selectedChords,
 }: ChordGridProps) {
+  const settings = useSettingsStore((s) => s.tonicTarget);
+
+  // Play a chord when clicked
+  const playChordSound = async (chord: Chord) => {
+    const voicing = settings.includeBassNote
+      ? getSimpleVoicingWithBass(chord)
+      : getSimpleVoicing(chord, 4);
+    await playChord(voicing, '4n');
+  };
+
+  // Handle chord click: play sound and select
+  const handleChordClick = (chord: Chord) => {
+    playChordSound(chord);
+    onChordSelect(chord);
+  };
+
   // Check if a chord is selected (any slot)
   const getSelectionSlot = (chord: Chord): 'ii' | 'V' | 'I' | null => {
     if (selectedChords.ii?.root === chord.root && selectedChords.ii?.quality === chord.quality) {
@@ -64,28 +85,28 @@ export function ChordGrid({
     return null;
   };
 
-  // Arrange chords: first row (I, ii, iii, IV), second row (V, vi, vii)
-  const firstRow = chords.filter(c => [1, 2, 3, 4].includes(c.degree));
-  const secondRow = chords.filter(c => [5, 6, 7].includes(c.degree));
+  const diatonicOptions = chords.filter((option) => option.degree);
+  const nonDiatonicOptions = chords.filter((option) => !option.degree);
 
-  const renderChordButton = (chord: Chord) => {
-    const selectionSlot = getSelectionSlot(chord);
+  const renderChordButton = (option: ChordOption) => {
+    const selectionSlot = getSelectionSlot(option.chord);
     const isSelected = selectionSlot !== null;
-    
-    const colorClass = showColors
-      ? degreeColorClasses[chord.degree]
+    const colorKey = option.colorDegree ?? option.degree;
+    const colorClass = showColors && colorKey
+      ? degreeColorClasses[colorKey]
       : 'bg-background-elevated border-text-muted/30 hover:bg-background-hover';
-    
-    const textColor = showColors && !isSelected
-      ? degreeTextColors[chord.degree]
+
+    const textColor = showColors && !isSelected && colorKey
+      ? degreeTextColors[colorKey]
       : 'text-text-primary';
+    const secondaryLabel = showRomanNumerals && option.degree ? DEGREE_TO_ROMAN[option.degree] : '';
 
     return (
       <button
-        key={`${chord.root}-${chord.quality}`}
-        onClick={() => onChordSelect(chord)}
+        key={option.id}
+        onClick={() => handleChordClick(option.chord)}
         disabled={disabled || isSelected}
-        data-testid={`chord-degree-${chord.degree}`}
+        data-testid={`chord-option-${option.id}`}
         className={`
           relative px-4 py-3 rounded-xl border-2 transition-all duration-200
           min-w-[80px] font-medium
@@ -98,11 +119,13 @@ export function ChordGrid({
       >
         <div className="flex flex-col items-center gap-1">
           <span className="text-lg font-bold">
-            {showChordNames ? getChordDisplayName(chord) : DEGREE_TO_ROMAN[chord.degree]}
+            {showChordNames
+              ? getChordDisplayName(option.chord)
+              : (secondaryLabel || getChordDisplayName(option.chord))}
           </span>
-          {showChordNames && (
+          {showChordNames && secondaryLabel && (
             <span className="text-xs text-text-muted">
-              {DEGREE_TO_ROMAN[chord.degree]}
+              {secondaryLabel}
             </span>
           )}
         </div>
@@ -118,16 +141,8 @@ export function ChordGrid({
   };
 
   return (
-    <div className="space-y-3">
-      {/* First row: I, ii, iii, IV */}
-      <div className="flex flex-wrap justify-center gap-3">
-        {firstRow.map(renderChordButton)}
-      </div>
-      
-      {/* Second row: V, vi, vii */}
-      <div className="flex flex-wrap justify-center gap-3">
-        {secondRow.map(renderChordButton)}
-      </div>
+    <div className="flex flex-wrap justify-center gap-3">
+      {[...diatonicOptions, ...nonDiatonicOptions].map(renderChordButton)}
     </div>
   );
 }

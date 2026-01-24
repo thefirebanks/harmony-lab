@@ -13,10 +13,12 @@ interface KeyDisplayProps {
   keySignature: Key;
   showKey: boolean;
   onHearTonic: () => void;
+  onHearTarget?: () => void;
+  targetLabel?: string;
   isPlaying: boolean;
 }
 
-export function KeyDisplay({ keySignature, showKey, onHearTonic, isPlaying }: KeyDisplayProps) {
+export function KeyDisplay({ keySignature, showKey, onHearTonic, onHearTarget, targetLabel, isPlaying }: KeyDisplayProps) {
   return (
     <div className="text-center space-y-4">
       <div className="space-y-1">
@@ -26,16 +28,30 @@ export function KeyDisplay({ keySignature, showKey, onHearTonic, isPlaying }: Ke
         </h2>
       </div>
       
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={onHearTonic}
-        disabled={isPlaying}
-        className="gap-2"
-      >
-        <span className="text-lg">&#9654;</span>
-        Hear Tonic
-      </Button>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onHearTonic}
+          disabled={isPlaying}
+          className="gap-2"
+        >
+          <span className="text-lg">&#9654;</span>
+          Hear Tonic
+        </Button>
+        {onHearTarget && targetLabel && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onHearTarget}
+            disabled={isPlaying}
+            className="gap-2"
+          >
+            <span className="text-lg">&#9654;</span>
+            Hear Target ({targetLabel})
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -16,8 +16,9 @@ import {
 import { tonicTargetConfig } from '@/games/tonic-target/config';
 import { createInitialSession } from '@/lib/game-engine/types';
 import { playChord, playProgression, playVoicingSequence } from '@/lib/audio';
-import { getSimpleVoicing, getSimpleVoicingWithBass } from '@/lib/music';
+import { getDiatonicChord, getSimpleVoicing, getSimpleVoicingWithBass } from '@/lib/music';
 import { useSettingsStore } from './settingsStore';
+import { useProgressStore } from './progressStore';
 
 interface TonicTargetGameState {
   // Game state
@@ -30,15 +31,18 @@ interface TonicTargetGameState {
   // UI state
   isPlaying: boolean;
   showFeedback: boolean;
+  isSessionComplete: boolean;
   
   // Actions
   startNewRound: () => void;
   selectChord: (chord: Chord) => void;
   clearSlot: (slot: 'ii' | 'V' | 'I') => void;
   submitAnswer: () => void;
+  skipRound: () => void;
   nextRound: () => void;
   resetSession: () => void;
   playTonic: () => void;
+  playTarget: () => void;
   playUserAnswer: () => void;
   playCorrectAnswer: () => void;
 }
@@ -52,11 +56,20 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
   theoryCard: null,
   isPlaying: false,
   showFeedback: false,
+  isSessionComplete: false,
   
   // Actions
   startNewRound: () => {
     const settings = useSettingsStore.getState().tonicTarget;
     const newRound = generateRound(settings);
+
+    if (
+      settings.sessionMode === 'time' &&
+      Date.now() - get().session.startTime.getTime() >= settings.timeLimitSeconds * 1000
+    ) {
+      set({ isSessionComplete: true });
+      return;
+    }
     
     set({
       round: newRound,
@@ -68,7 +81,14 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
     
     // Auto-play tonic if enabled
     if (settings.autoPlayTonic) {
-      get().playTonic();
+      const tonicChord = getDiatonicChord(newRound.key.tonic, 1);
+      const voicing = settings.includeBassNote
+        ? getSimpleVoicingWithBass(tonicChord)
+        : getSimpleVoicing(tonicChord, 4);
+      set({ isPlaying: true });
+      playChord(voicing, '2n').finally(() => {
+        setTimeout(() => set({ isPlaying: false }), 1500);
+      });
     }
   },
   
@@ -97,10 +117,16 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
     const { round, answer, session } = get();
     if (!round) return;
     if (!checkAnswerComplete(answer)) return;
-    
+
     const result = validateAnswer(round, answer);
     const theoryCards = tonicTargetConfig.getTheoryCards(round, result.isCorrect);
-    
+    const settings = useSettingsStore.getState().tonicTarget;
+    const timeExpired = settings.sessionMode === 'time'
+      && Date.now() - session.startTime.getTime() >= settings.timeLimitSeconds * 1000;
+
+    // Record result in progress store
+    useProgressStore.getState().recordRoundResult(round.key.tonic, result.isCorrect);
+
     set({
       feedback: result,
       showFeedback: true,
@@ -111,17 +137,73 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
         roundsCorrect: session.roundsCorrect + (result.isCorrect ? 1 : 0),
         currentStreak: result.isCorrect ? session.currentStreak + 1 : 0,
       },
+      isSessionComplete: timeExpired ? true : get().isSessionComplete,
     });
-    
+
     // Play the user's answer
     get().playUserAnswer();
   },
+
+  skipRound: () => {
+    const { session } = get();
+    const settings = useSettingsStore.getState().tonicTarget;
+
+    // Check if session should end
+    if (
+      settings.sessionMode === 'time' &&
+      Date.now() - session.startTime.getTime() >= settings.timeLimitSeconds * 1000
+    ) {
+      set({ isSessionComplete: true });
+      return;
+    }
+    if (settings.sessionMode === 'rounds' && session.currentRound >= settings.roundsPerSession) {
+      set({ isSessionComplete: true });
+      return;
+    }
+
+    // Move to next round without recording progress
+    set({
+      session: { ...session, currentRound: session.currentRound + 1 },
+    });
+    get().startNewRound();
+  },
   
   nextRound: () => {
+    const { session } = get();
+    const settings = useSettingsStore.getState().tonicTarget;
+
+    // Check if session should end
+    if (
+      settings.sessionMode === 'time' &&
+      Date.now() - session.startTime.getTime() >= settings.timeLimitSeconds * 1000
+    ) {
+      set({ isSessionComplete: true });
+      return;
+    }
+    if (settings.sessionMode === 'rounds' && session.currentRound >= settings.roundsPerSession) {
+      set({ isSessionComplete: true });
+      return;
+    }
+
+    // Move to next round and start it
+    set({
+      session: { ...session, currentRound: session.currentRound + 1 },
+    });
     get().startNewRound();
   },
   
   resetSession: () => {
+    const { session } = get();
+
+    // Save the current session to progress store if there are completed rounds
+    if (session.roundsCompleted > 0) {
+      useProgressStore.getState().saveSession(
+        session.roundsCompleted,
+        session.roundsCorrect,
+        session.startTime
+      );
+    }
+
     set({
       session: createInitialSession(),
       round: null,
@@ -129,6 +211,7 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
       feedback: null,
       showFeedback: false,
       theoryCard: null,
+      isSessionComplete: false,
     });
     get().startNewRound();
   },
@@ -141,12 +224,31 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
 
     try {
       const settings = useSettingsStore.getState().tonicTarget;
+      const tonicChord = getDiatonicChord(round.key.tonic, 1);
       const voicing = settings.includeBassNote
-        ? getSimpleVoicingWithBass(round.correctProgression.I)
-        : getSimpleVoicing(round.correctProgression.I, 4);
+        ? getSimpleVoicingWithBass(tonicChord)
+        : getSimpleVoicing(tonicChord, 4);
       await playChord(voicing, '2n');
     } finally {
       // Reset after a short delay
+      setTimeout(() => set({ isPlaying: false }), 1500);
+    }
+  },
+
+  playTarget: async () => {
+    const { round, isPlaying } = get();
+    if (!round || isPlaying) return;
+
+    set({ isPlaying: true });
+
+    try {
+      const settings = useSettingsStore.getState().tonicTarget;
+      const targetChord = getDiatonicChord(round.key.tonic, round.targetDegree);
+      const voicing = settings.includeBassNote
+        ? getSimpleVoicingWithBass(targetChord)
+        : getSimpleVoicing(targetChord, 4);
+      await playChord(voicing, '2n');
+    } finally {
       setTimeout(() => set({ isPlaying: false }), 1500);
     }
   },

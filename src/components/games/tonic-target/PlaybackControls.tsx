@@ -1,6 +1,6 @@
 /**
  * Playback Controls Component
- * Buttons for hearing tonic, playing answer, and submitting
+ * Buttons for hearing tonic, playing answer, submitting, and skipping
  */
 
 'use client';
@@ -11,6 +11,7 @@ interface PlaybackControlsProps {
   onHearTonic: () => void;
   onPlayAnswer: () => void;
   onSubmit: () => void;
+  onSkip: () => void;
   canSubmit: boolean;
   canPlayAnswer: boolean;
   isPlaying: boolean;
@@ -20,6 +21,7 @@ export function PlaybackControls({
   onHearTonic,
   onPlayAnswer,
   onSubmit,
+  onSkip,
   canSubmit,
   canPlayAnswer,
   isPlaying,
@@ -35,7 +37,7 @@ export function PlaybackControls({
         <span>&#9654;</span>
         Hear Tonic
       </Button>
-      
+
       <Button
         variant="secondary"
         onClick={onPlayAnswer}
@@ -45,7 +47,7 @@ export function PlaybackControls({
         <span>&#9654;</span>
         Play My Answer
       </Button>
-      
+
       <Button
         variant="primary"
         onClick={onSubmit}
@@ -53,6 +55,15 @@ export function PlaybackControls({
         data-testid="submit-button"
       >
         Submit
+      </Button>
+
+      <Button
+        variant="ghost"
+        onClick={onSkip}
+        disabled={isPlaying}
+        className="text-text-muted hover:text-text-primary"
+      >
+        Skip
       </Button>
     </div>
   );

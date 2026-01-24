@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GameShell, SettingsPanel, TutorialOverlay } from '@/components/shared';
+import { GameShell, SettingsPanel, TutorialOverlay, ProgressPanel, ProfileModal } from '@/components/shared';
 import { TonicTargetGame } from '@/components/games/tonic-target';
 import { LoadingScreen } from '@/components/shared';
 import { useAudioStore, useSettingsStore } from '@/stores';
@@ -18,6 +18,8 @@ export default function TonicTargetPage() {
   const resetTonicTargetSettings = useSettingsStore((state) => state.resetTonicTargetSettings);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialChecked, setTutorialChecked] = useState(false);
 
@@ -43,11 +45,13 @@ export default function TonicTargetPage() {
   // Show start screen if not interacted
   if (!hasInteracted) {
     return (
-      <GameShell
-        title="Tonic Target Practice"
-        onSettingsClick={() => setSettingsOpen(true)}
-        onHelpClick={() => setShowTutorial(true)}
-      >
+        <GameShell
+          title="Tonic Target Practice"
+          onSettingsClick={() => setSettingsOpen(true)}
+          onProgressClick={() => setProgressOpen(true)}
+          onHelpClick={() => setShowTutorial(true)}
+          onProfileClick={() => setProfileOpen(true)}
+        >
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold text-text-primary">Tonic Target Practice</h2>
@@ -55,14 +59,14 @@ export default function TonicTargetPage() {
               Build ii-V-I progressions in random keys to develop your functional harmony intuition.
             </p>
           </div>
-          
+
           <button
             onClick={handleStart}
             className="px-8 py-4 bg-accent text-background font-bold text-lg rounded-xl hover:bg-accent-hover transition-colors"
           >
             Start Practice
           </button>
-          
+
           <p className="text-text-muted text-sm">
             Click to load piano samples and begin
           </p>
@@ -75,6 +79,8 @@ export default function TonicTargetPage() {
           onSettingChange={setTonicTargetSetting}
           onReset={resetTonicTargetSettings}
         />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
+        <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
         <TutorialOverlay isOpen={showTutorial} onClose={handleCloseTutorial} />
       </GameShell>
     );
@@ -83,11 +89,13 @@ export default function TonicTargetPage() {
   // Show loading screen while samples load
   if (isLoading) {
     return (
-      <GameShell
-        title="Tonic Target Practice"
-        onSettingsClick={() => setSettingsOpen(true)}
-        onHelpClick={() => setShowTutorial(true)}
-      >
+        <GameShell
+          title="Tonic Target Practice"
+          onSettingsClick={() => setSettingsOpen(true)}
+          onProgressClick={() => setProgressOpen(true)}
+          onHelpClick={() => setShowTutorial(true)}
+          onProfileClick={() => setProfileOpen(true)}
+        >
         <LoadingScreen message="Loading piano samples..." progress={loadingProgress} />
         <SettingsPanel
           isOpen={settingsOpen}
@@ -97,6 +105,8 @@ export default function TonicTargetPage() {
           onSettingChange={setTonicTargetSetting}
           onReset={resetTonicTargetSettings}
         />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
+        <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
         <TutorialOverlay isOpen={showTutorial} onClose={handleCloseTutorial} />
       </GameShell>
     );
@@ -105,11 +115,13 @@ export default function TonicTargetPage() {
   // Show error if loading failed
   if (error) {
     return (
-      <GameShell
-        title="Tonic Target Practice"
-        onSettingsClick={() => setSettingsOpen(true)}
-        onHelpClick={() => setShowTutorial(true)}
-      >
+        <GameShell
+          title="Tonic Target Practice"
+          onSettingsClick={() => setSettingsOpen(true)}
+          onProgressClick={() => setProgressOpen(true)}
+          onHelpClick={() => setShowTutorial(true)}
+          onProfileClick={() => setProfileOpen(true)}
+        >
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center">
           <p className="text-error">Failed to load audio: {error}</p>
           <button
@@ -127,6 +139,8 @@ export default function TonicTargetPage() {
           onSettingChange={setTonicTargetSetting}
           onReset={resetTonicTargetSettings}
         />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
+        <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
         <TutorialOverlay isOpen={showTutorial} onClose={handleCloseTutorial} />
       </GameShell>
     );
@@ -136,9 +150,11 @@ export default function TonicTargetPage() {
     <GameShell
       title="Tonic Target Practice"
       onSettingsClick={() => setSettingsOpen(true)}
+      onProgressClick={() => setProgressOpen(true)}
       onHelpClick={() => setShowTutorial(true)}
+      onProfileClick={() => setProfileOpen(true)}
     >
-      <TonicTargetGame />
+      <TonicTargetGame onViewProgress={() => setProgressOpen(true)} />
       <SettingsPanel
         isOpen={settingsOpen}
         settings={settings}
@@ -147,6 +163,8 @@ export default function TonicTargetPage() {
         onSettingChange={setTonicTargetSetting}
         onReset={resetTonicTargetSettings}
       />
+      <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
+      <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
       <TutorialOverlay isOpen={showTutorial} onClose={handleCloseTutorial} />
     </GameShell>
   );

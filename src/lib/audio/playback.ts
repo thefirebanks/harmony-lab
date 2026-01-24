@@ -19,18 +19,25 @@ import {
  * @param duration - Duration (Tone.js notation, e.g., '2n' for half note)
  */
 export async function playChord(
-  voicing: Voicing, 
+  voicing: Voicing,
   duration: string = '2n'
 ): Promise<void> {
   await startAudioContext();
-  
+
   const sampler = getSampler();
   if (!sampler || !isAudioReady()) {
     console.warn('Audio not ready, cannot play chord');
     return;
   }
-  
+
   const pitchStrings = voicingToNoteStrings(voicing);
+
+  // Debug logging for A# issue
+  if (voicing.chord.root === 'A#' && voicing.chord.quality === 'maj7') {
+    console.log('[A# Debug] Chord:', voicing.chord);
+    console.log('[A# Debug] Pitch strings:', pitchStrings);
+  }
+
   sampler.triggerAttackRelease(pitchStrings, duration);
 }
 

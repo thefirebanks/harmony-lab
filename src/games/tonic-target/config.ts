@@ -7,7 +7,7 @@ import type { GameConfig, AudioCue, TheoryCard } from '@/lib/game-engine/types';
 import type { TonicTargetRound, TonicTargetAnswer, TonicTargetSettings } from './types';
 import { defaultTonicTargetSettings, difficultyPresets } from './types';
 import { generateRound, validateAnswer } from './logic';
-import { getSimpleVoicingWithBass, getVoicing } from '@/lib/music';
+import { getDiatonicChord, getSimpleVoicingWithBass, getVoicing } from '@/lib/music';
 import { getRandomTheoryCard } from './theoryCards';
 
 export const tonicTargetConfig: GameConfig<
@@ -27,7 +27,7 @@ export const tonicTargetConfig: GameConfig<
   
   getRoundAudio: (round): AudioCue[] => [{
     type: 'chord',
-    data: getSimpleVoicingWithBass(round.correctProgression.I),
+    data: getSimpleVoicingWithBass(getDiatonicChord(round.key.tonic, 1)),
   }],
   
   getAnswerAudio: (answer): AudioCue[] => {

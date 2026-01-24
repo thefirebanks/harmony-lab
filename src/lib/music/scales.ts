@@ -62,6 +62,17 @@ export function getScaleDegree(tonic: NoteName, degree: 1 | 2 | 3 | 4 | 5 | 6 | 
 }
 
 /**
+ * Get a specific scale degree from a natural minor scale
+ * @param tonic - The tonic of the key
+ * @param degree - Scale degree (1-7)
+ * @returns The note at that scale degree
+ */
+export function getMinorScaleDegree(tonic: NoteName, degree: 1 | 2 | 3 | 4 | 5 | 6 | 7): NoteName {
+  const scale = getMinorScale(tonic);
+  return scale[degree - 1]; // Convert from 1-indexed to 0-indexed
+}
+
+/**
  * Calculate the interval in semitones between two notes
  * @param from - Starting note
  * @param to - Ending note

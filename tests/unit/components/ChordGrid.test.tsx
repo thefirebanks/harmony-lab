@@ -6,17 +6,25 @@ import { describe, expect, test } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChordGrid } from '@/components/games/tonic-target/ChordGrid';
-import { getAllDiatonicChords } from '@/lib/music';
+import { getAllDiatonicChords, DEGREE_TO_ROMAN } from '@/lib/music';
+import type { ChordOption } from '@/games/tonic-target/types';
 
 describe('ChordGrid', () => {
   test('renders all seven diatonic chords', () => {
-    const chords = getAllDiatonicChords('C');
+    const chords: ChordOption[] = getAllDiatonicChords('C').map((chord) => ({
+      id: `diatonic-${chord.degree}`,
+      chord,
+      label: DEGREE_TO_ROMAN[chord.degree],
+      degree: chord.degree,
+      group: 'diatonic',
+    }));
 
     render(
       <ChordGrid
         chords={chords}
         onChordSelect={() => {}}
         showChordNames
+        showRomanNumerals={false}
         showColors
         disabled={false}
         selectedChords={{ ii: null, V: null, I: null }}
@@ -29,7 +37,13 @@ describe('ChordGrid', () => {
 
   test('fires onChordSelect when a chord is clicked', async () => {
     const user = userEvent.setup();
-    const chords = getAllDiatonicChords('C');
+    const chords: ChordOption[] = getAllDiatonicChords('C').map((chord) => ({
+      id: `diatonic-${chord.degree}`,
+      chord,
+      label: DEGREE_TO_ROMAN[chord.degree],
+      degree: chord.degree,
+      group: 'diatonic',
+    }));
     let selected = '';
 
     render(
@@ -39,6 +53,7 @@ describe('ChordGrid', () => {
           selected = chord.root;
         }}
         showChordNames
+        showRomanNumerals={false}
         showColors
         disabled={false}
         selectedChords={{ ii: null, V: null, I: null }}
@@ -50,13 +65,20 @@ describe('ChordGrid', () => {
   });
 
   test('shows roman numerals when chord names are hidden', () => {
-    const chords = getAllDiatonicChords('C');
+    const chords: ChordOption[] = getAllDiatonicChords('C').map((chord) => ({
+      id: `diatonic-${chord.degree}`,
+      chord,
+      label: DEGREE_TO_ROMAN[chord.degree],
+      degree: chord.degree,
+      group: 'diatonic',
+    }));
 
     render(
       <ChordGrid
         chords={chords}
         onChordSelect={() => {}}
         showChordNames={false}
+        showRomanNumerals={true}
         showColors
         disabled={false}
         selectedChords={{ ii: null, V: null, I: null }}

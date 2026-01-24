@@ -29,6 +29,32 @@ export interface AudioCue {
 }
 
 /**
+ * Guitar chord position for fretboard diagrams
+ */
+export interface GuitarFretPosition {
+  string: number; // 1-6 (high E to low E)
+  fret: number;   // 0 = open, -1 = muted
+  label?: string; // Optional finger/note label
+}
+
+/**
+ * Guitar chord diagram data
+ */
+export interface GuitarChordDiagram {
+  name: string;
+  positions: GuitarFretPosition[];
+  startFret?: number;
+}
+
+/**
+ * Guitar voicing set for theory cards
+ */
+export interface GuitarVoicingSet {
+  title: string;
+  chords: GuitarChordDiagram[];
+}
+
+/**
  * Theory card for contextual learning
  */
 export interface TheoryCard {
@@ -36,6 +62,7 @@ export interface TheoryCard {
   title: string;
   content: string;
   diagram?: string; // ASCII art or reference to image
+  guitarVoicing?: GuitarVoicingSet; // Visual guitar diagram
 }
 
 /**
@@ -43,6 +70,7 @@ export interface TheoryCard {
  */
 export interface SessionStats {
   startTime: Date;
+  currentRound: number;
   roundsCompleted: number;
   roundsCorrect: number;
   currentStreak: number;
@@ -103,6 +131,7 @@ export interface GameActions<TRound, TAnswer> {
 export function createInitialSession(): SessionStats {
   return {
     startTime: new Date(),
+    currentRound: 1,
     roundsCompleted: 0,
     roundsCorrect: 0,
     currentStreak: 0,

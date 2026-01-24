@@ -6,6 +6,25 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tonic Target Practice', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const settings = {
+        masterVolume: 0.8,
+        tonicTarget: {
+          difficulty: 1,
+          showChordNames: true,
+          showRomanNumerals: false,
+          showColors: true,
+          includeBassNote: true,
+          playbackTempo: 100,
+          autoPlayTonic: true,
+          targetDegrees: [1],
+          sessionMode: 'rounds',
+          roundsPerSession: 10,
+          timeLimitSeconds: 600,
+        },
+      };
+      localStorage.setItem('harmony-lab-settings', JSON.stringify({ state: settings, version: 0 }));
+    });
     await page.goto('/games/tonic-target');
   });
 
@@ -32,16 +51,16 @@ test.describe('Tonic Target Practice', () => {
     await page.getByRole('button', { name: 'Start Practice' }).click();
     await page.waitForSelector('[data-testid="game-ready"]', { timeout: 30000 });
     
-    // Click ii chord (degree 2)
-    await page.click('[data-testid="chord-degree-2"]');
+    // Click ii chord (diatonic degree 2)
+    await page.click('[data-testid="chord-option-diatonic-2"]');
     await expect(page.locator('[data-testid="slot-ii"]')).not.toContainText('___');
     
-    // Click V chord (degree 5)
-    await page.click('[data-testid="chord-degree-5"]');
+    // Click V chord (diatonic degree 5)
+    await page.click('[data-testid="chord-option-diatonic-5"]');
     await expect(page.locator('[data-testid="slot-V"]')).not.toContainText('___');
     
-    // Click I chord (degree 1)
-    await page.click('[data-testid="chord-degree-1"]');
+    // Click I chord (diatonic degree 1)
+    await page.click('[data-testid="chord-option-diatonic-1"]');
     await expect(page.locator('[data-testid="slot-I"]')).not.toContainText('___');
   });
 
@@ -49,10 +68,10 @@ test.describe('Tonic Target Practice', () => {
     await page.getByRole('button', { name: 'Start Practice' }).click();
     await page.waitForSelector('[data-testid="game-ready"]', { timeout: 30000 });
     
-    // Select correct ii-V-I
-    await page.click('[data-testid="chord-degree-2"]');
-    await page.click('[data-testid="chord-degree-5"]');
-    await page.click('[data-testid="chord-degree-1"]');
+    // Select correct ii-V-I (target degree forced to 1)
+    await page.click('[data-testid="chord-option-diatonic-2"]');
+    await page.click('[data-testid="chord-option-diatonic-5"]');
+    await page.click('[data-testid="chord-option-diatonic-1"]');
     
     // Submit
     await page.click('[data-testid="submit-button"]');
@@ -66,10 +85,10 @@ test.describe('Tonic Target Practice', () => {
     await page.getByRole('button', { name: 'Start Practice' }).click();
     await page.waitForSelector('[data-testid="game-ready"]', { timeout: 30000 });
     
-    // Select wrong chords (iii-vi-IV instead of ii-V-I)
-    await page.click('[data-testid="chord-degree-3"]');
-    await page.click('[data-testid="chord-degree-6"]');
-    await page.click('[data-testid="chord-degree-4"]');
+    // Select wrong diatonic chords (iii-vi-IV instead of ii-V-I)
+    await page.click('[data-testid="chord-option-diatonic-3"]');
+    await page.click('[data-testid="chord-option-diatonic-6"]');
+    await page.click('[data-testid="chord-option-diatonic-4"]');
     
     // Submit
     await page.click('[data-testid="submit-button"]');
@@ -84,9 +103,9 @@ test.describe('Tonic Target Practice', () => {
     await page.waitForSelector('[data-testid="game-ready"]', { timeout: 30000 });
     
     // Complete a round
-    await page.click('[data-testid="chord-degree-2"]');
-    await page.click('[data-testid="chord-degree-5"]');
-    await page.click('[data-testid="chord-degree-1"]');
+    await page.click('[data-testid="chord-option-diatonic-2"]');
+    await page.click('[data-testid="chord-option-diatonic-5"]');
+    await page.click('[data-testid="chord-option-diatonic-1"]');
     await page.click('[data-testid="submit-button"]');
     
     // Wait for feedback
