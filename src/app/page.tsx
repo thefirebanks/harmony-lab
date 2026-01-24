@@ -50,6 +50,12 @@ export default function Home() {
       status: 'available' as const,
     },
     {
+      id: 'note-identification',
+      name: 'Note Identification',
+      description: 'Hear a note, then choose the correct pitch from multiple options.',
+      status: 'available' as const,
+    },
+    {
       id: 'chord-crush',
       name: 'Chord Crush Clone',
       description: 'Identify the missing chord in a progression.',
