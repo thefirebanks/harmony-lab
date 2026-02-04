@@ -56,6 +56,12 @@ export default function Home() {
       status: 'available' as const,
     },
     {
+      id: 'interval-games',
+      name: 'Interval Flash',
+      description: 'Identify intervals under time pressure. Speed defeats calculation!',
+      status: 'available' as const,
+    },
+    {
       id: 'chord-crush',
       name: 'Chord Crush Clone',
       description: 'Identify the missing chord in a progression.',

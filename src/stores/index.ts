@@ -6,6 +6,7 @@ export { useSettingsStore } from './settingsStore';
 export { useAudioStore } from './audioStore';
 export { useTonicTargetStore } from './gameStore';
 export { useNoteIdentificationStore } from './noteIdentificationStore';
+export { useIntervalFlashStore } from './intervalGameStore';
 export { useProgressStore } from './progressStore';
 export { useProfileStore } from './profileStore';
 export { useSessionPersistenceStore } from './sessionPersistenceStore';
