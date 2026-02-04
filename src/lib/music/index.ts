@@ -45,12 +45,8 @@ export {
 
 // Keys
 export {
-  createKey,
   getRandomKey,
-  getAllMajorKeys,
   getKeyDisplayName,
-  getRelativeMinor,
-  keysAreEqual,
 } from './keys';
 
 // Progressions
