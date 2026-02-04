@@ -15,6 +15,7 @@ import { intervalFlashConfig } from '@/games/interval-games/config';
 import { createInitialSession } from '@/lib/game-engine/types';
 import { playNote } from '@/lib/audio';
 import { useSettingsStore } from './settingsStore';
+import { useSessionPersistenceStore } from './sessionPersistenceStore';
 
 interface IntervalFlashGameState {
   // Game state
@@ -47,6 +48,11 @@ interface IntervalFlashGameState {
   startTimer: () => void;
   stopTimer: () => void;
   tickTimer: () => void;
+
+  // Session persistence
+  pauseSession: () => void;
+  restoreSession: () => boolean;
+  hasPausedSession: () => boolean;
 }
 
 export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) => ({
@@ -271,5 +277,51 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
     } else {
       set({ timeRemaining: newTime });
     }
+  },
+
+  // Session persistence
+  pauseSession: () => {
+    const { round, answer, session, showFeedback, isSessionComplete } = get();
+
+    // Don't save if showing feedback, session is complete, or no round
+    if (!round || showFeedback || isSessionComplete) return;
+
+    // Stop timer before saving
+    get().stopTimer();
+
+    useSessionPersistenceStore.getState().saveIntervalFlashSession(round, answer, session);
+  },
+
+  restoreSession: () => {
+    const savedSession = useSessionPersistenceStore.getState().getIntervalFlashSession();
+    if (!savedSession) return false;
+
+    set({
+      round: savedSession.round,
+      answer: savedSession.answer,
+      session: savedSession.session,
+      feedback: null,
+      showFeedback: false,
+      theoryCard: null,
+      isSessionComplete: false,
+      timeRemaining: savedSession.round.timeLimit,
+      timerActive: false,
+    });
+
+    useSessionPersistenceStore.getState().clearIntervalFlashSession();
+
+    // Play the interval and start timer after restoring
+    setTimeout(() => {
+      get().playInterval();
+      setTimeout(() => {
+        get().startTimer();
+      }, 800);
+    }, 300);
+
+    return true;
+  },
+
+  hasPausedSession: () => {
+    return useSessionPersistenceStore.getState().hasIntervalFlashSession();
   },
 }));

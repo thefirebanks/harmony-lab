@@ -13,7 +13,10 @@ export interface Pitch {
 }
 
 // Chord quality
-export type ChordQuality = 'maj7' | 'min7' | '7' | 'min7b5' | 'dim7' | 'maj' | 'min';
+export type ChordQuality = 'maj7' | 'min7' | '7' | 'min7b5' | 'dim7' | 'maj' | 'min' | 'dim';
+
+// Chord extension level - determines whether to use triads or 7th chords
+export type ChordExtensionLevel = 'triads' | '7ths';
 
 // Scale degrees (1-indexed to match music theory convention)
 export type ScaleDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7;

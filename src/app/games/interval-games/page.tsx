@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { GameShell, LoadingScreen, ProfileModal } from '@/components/shared';
 import { IntervalFlashGame, IntervalGameSettingsPanel } from '@/components/games/interval-games';
 import { useAudioStore, useSettingsStore, useIntervalFlashStore } from '@/stores';
@@ -21,6 +21,10 @@ export default function IntervalGamesPage() {
     (state) => state.resetIntervalFlashSettings
   );
 
+  const hasPausedSession = useIntervalFlashStore((state) => state.hasPausedSession);
+  const restoreSession = useIntervalFlashStore((state) => state.restoreSession);
+  const pauseSession = useIntervalFlashStore((state) => state.pauseSession);
+  const startNewRound = useIntervalFlashStore((state) => state.startNewRound);
   const stopTimer = useIntervalFlashStore((state) => state.stopTimer);
 
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -28,12 +32,62 @@ export default function IntervalGamesPage() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialChecked, setTutorialChecked] = useState(false);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Start loading audio after user interaction
   const handleStart = async () => {
     setHasInteracted(true);
     await loadAudio();
   };
+
+  // Handle resuming a paused session
+  const handleResume = useCallback(() => {
+    restoreSession();
+    setShowResumePrompt(false);
+    setSessionChecked(true);
+  }, [restoreSession]);
+
+  // Handle starting a new session (discarding paused)
+  const handleNewSession = useCallback(() => {
+    setShowResumePrompt(false);
+    setSessionChecked(true);
+    startNewRound();
+  }, [startNewRound]);
+
+  // Check for paused session after audio loads (same pattern as tonic-target)
+  useEffect(() => {
+    if (!isLoaded || sessionChecked) return;
+
+    if (hasPausedSession()) {
+      setShowResumePrompt(true); // eslint-disable-line react-hooks/set-state-in-effect
+    } else {
+      setSessionChecked(true);
+    }
+  }, [isLoaded, sessionChecked, hasPausedSession]);
+
+  // Save session when user leaves the page
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        pauseSession();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      pauseSession();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isLoaded, pauseSession]);
 
   // Check tutorial state (same pattern as tonic-target)
   useEffect(() => {
@@ -152,6 +206,53 @@ export default function IntervalGamesPage() {
           onReset={resetIntervalFlashSettings}
         />
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      </GameShell>
+    );
+  }
+
+  // Show resume prompt if there's a paused session
+  if (showResumePrompt) {
+    return (
+      <GameShell
+        title="Interval Flash"
+        onSettingsClick={() => setSettingsOpen(true)}
+        onProgressClick={() => {}}
+        onHelpClick={() => setShowTutorial(true)}
+        onProfileClick={() => setProfileOpen(true)}
+      >
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-text-primary">Welcome Back</h2>
+            <p className="text-text-secondary max-w-md">
+              You have an unfinished practice session. Would you like to continue where you left off?
+            </p>
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleResume}
+              className="px-6 py-3 bg-accent text-background font-bold rounded-xl hover:bg-accent-hover transition-colors"
+            >
+              Resume Session
+            </button>
+            <button
+              onClick={handleNewSession}
+              className="px-6 py-3 bg-background-elevated text-text-primary font-medium rounded-xl border border-text-muted/20 hover:border-accent/60 transition-colors"
+            >
+              Start Fresh
+            </button>
+          </div>
+        </div>
+        <IntervalGameSettingsPanel
+          isOpen={settingsOpen}
+          settings={settings}
+          onClose={() => setSettingsOpen(false)}
+          onDifficultyChange={setIntervalFlashDifficulty}
+          onSettingChange={setIntervalFlashSetting}
+          onReset={resetIntervalFlashSettings}
+        />
+        <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        {showTutorial && <TutorialOverlay onClose={handleCloseTutorial} />}
       </GameShell>
     );
   }
