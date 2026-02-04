@@ -11,6 +11,7 @@ import type { NoteIdentificationRound, NoteIdentificationAnswer } from '@/games/
 import { generateRound, validateAnswer } from '@/games/note-identification/logic';
 import { useSettingsStore } from './settingsStore';
 import { useProgressStore } from './progressStore';
+import { useSessionPersistenceStore } from './sessionPersistenceStore';
 
 interface NoteIdentificationGameState {
   round: NoteIdentificationRound | null;
@@ -26,6 +27,11 @@ interface NoteIdentificationGameState {
   nextRound: () => void;
   resetSession: () => void;
   playTarget: () => void;
+
+  // Session persistence
+  pauseSession: () => void;
+  restoreSession: () => boolean;
+  hasPausedSession: () => boolean;
 }
 
 export const useNoteIdentificationStore = create<NoteIdentificationGameState>((set, get) => ({
@@ -141,5 +147,35 @@ export const useNoteIdentificationStore = create<NoteIdentificationGameState>((s
     } finally {
       setTimeout(() => set({ isPlaying: false }), 1200);
     }
+  },
+
+  pauseSession: () => {
+    const { round, answer, session, showFeedback, isSessionComplete } = get();
+
+    // Don't save if showing feedback, session is complete, or no round
+    if (!round || showFeedback || isSessionComplete) return;
+
+    useSessionPersistenceStore.getState().saveNoteIdentificationSession(round, answer, session);
+  },
+
+  restoreSession: () => {
+    const savedSession = useSessionPersistenceStore.getState().getNoteIdentificationSession();
+    if (!savedSession) return false;
+
+    set({
+      round: savedSession.round,
+      answer: savedSession.answer,
+      session: savedSession.session,
+      feedback: null,
+      showFeedback: false,
+      isSessionComplete: false,
+    });
+
+    useSessionPersistenceStore.getState().clearNoteIdentificationSession();
+    return true;
+  },
+
+  hasPausedSession: () => {
+    return useSessionPersistenceStore.getState().hasNoteIdentificationSession();
   },
 }));

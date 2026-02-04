@@ -55,16 +55,23 @@ const PIANO_SAMPLES: Record<string, string> = {
  */
 export async function initAudio(): Promise<void> {
   if (isLoaded || isLoading) return;
-  
+
   isLoading = true;
   loadingProgress = 0;
-  
+
+  // Start audio context first (requires user interaction)
+  await Tone.start();
+
   return new Promise((resolve, reject) => {
     pianoSampler = new Tone.Sampler({
       urls: PIANO_SAMPLES,
       release: 1,
       baseUrl: SAMPLE_BASE_URL,
-      onload: () => {
+      onload: async () => {
+        // Warm up the audio engine by playing a silent note
+        // This primes the sampler and avoids first-note timing issues
+        await warmUpAudio();
+
         isLoaded = true;
         isLoading = false;
         loadingProgress = 100;
@@ -76,6 +83,25 @@ export async function initAudio(): Promise<void> {
       },
     }).toDestination();
   });
+}
+
+/**
+ * Warm up the audio engine by playing a very quiet note
+ * This ensures the sampler is fully ready for the first real playback
+ */
+async function warmUpAudio(): Promise<void> {
+  if (!pianoSampler) return;
+
+  // Store current volume and set to silent
+  const originalVolume = pianoSampler.volume.value;
+  pianoSampler.volume.value = -Infinity;
+
+  // Play a short note to prime the audio buffer
+  pianoSampler.triggerAttackRelease('C4', '32n');
+
+  // Wait for the note to complete and restore volume
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  pianoSampler.volume.value = originalVolume;
 }
 
 /**

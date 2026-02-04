@@ -19,6 +19,7 @@ import { playChord, playProgression, playVoicingSequence } from '@/lib/audio';
 import { getDiatonicChord, getSimpleVoicing, getSimpleVoicingWithBass } from '@/lib/music';
 import { useSettingsStore } from './settingsStore';
 import { useProgressStore } from './progressStore';
+import { useSessionPersistenceStore } from './sessionPersistenceStore';
 
 interface TonicTargetGameState {
   // Game state
@@ -27,12 +28,12 @@ interface TonicTargetGameState {
   feedback: ValidationResult | null;
   session: SessionStats;
   theoryCard: TheoryCard | null;
-  
+
   // UI state
   isPlaying: boolean;
   showFeedback: boolean;
   isSessionComplete: boolean;
-  
+
   // Actions
   startNewRound: () => void;
   selectChord: (chord: Chord) => void;
@@ -45,6 +46,11 @@ interface TonicTargetGameState {
   playTarget: () => void;
   playUserAnswer: () => void;
   playCorrectAnswer: () => void;
+
+  // Session persistence
+  pauseSession: () => void;
+  restoreSession: () => boolean;
+  hasPausedSession: () => boolean;
 }
 
 export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
@@ -278,14 +284,45 @@ export const useTonicTargetStore = create<TonicTargetGameState>((set, get) => ({
   playCorrectAnswer: async () => {
     const { round, isPlaying } = get();
     if (!round || isPlaying) return;
-    
+
     set({ isPlaying: true });
-    
+
     try {
       const settings = useSettingsStore.getState().tonicTarget;
       await playProgression(round.correctProgression, settings.playbackTempo, settings.includeBassNote);
     } finally {
       setTimeout(() => set({ isPlaying: false }), 4000);
     }
+  },
+
+  pauseSession: () => {
+    const { round, answer, session, showFeedback, isSessionComplete } = get();
+
+    // Don't save if showing feedback, session is complete, or no round
+    if (!round || showFeedback || isSessionComplete) return;
+
+    useSessionPersistenceStore.getState().saveTonicTargetSession(round, answer, session);
+  },
+
+  restoreSession: () => {
+    const savedSession = useSessionPersistenceStore.getState().getTonicTargetSession();
+    if (!savedSession) return false;
+
+    set({
+      round: savedSession.round,
+      answer: savedSession.answer,
+      session: savedSession.session,
+      feedback: null,
+      showFeedback: false,
+      theoryCard: null,
+      isSessionComplete: false,
+    });
+
+    useSessionPersistenceStore.getState().clearTonicTargetSession();
+    return true;
+  },
+
+  hasPausedSession: () => {
+    return useSessionPersistenceStore.getState().hasTonicTargetSession();
   },
 }));
