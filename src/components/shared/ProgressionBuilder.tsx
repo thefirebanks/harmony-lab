@@ -1,17 +1,25 @@
 /**
  * ProgressionBuilder Component
- * Build custom chord progressions by clicking diatonic chords
- * For use in solo visualizer, backing tracks, etc.
+ * Build custom chord progressions by typing roman numerals or clicking presets
+ * Supports inline editing and insertion of chords
  */
 
 'use client';
 
-import { useState } from 'react';
-import type { Chord, NoteName, ScaleDegree, ChordExtensionLevel } from '@/lib/music/types';
-import { getAllDiatonicChords, getChordDisplayName } from '@/lib/music/chords';
-import { DEGREE_TO_ROMAN, CHROMATIC_NOTES, MINOR_DEGREE_TO_ROMAN } from '@/lib/music/constants';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import type { Chord, NoteName, ScaleDegree } from '@/lib/music/types';
+import { getChordDisplayName } from '@/lib/music/chords';
+import { CHROMATIC_NOTES } from '@/lib/music/constants';
 import { getSimpleVoicing, getSimpleVoicingWithBass } from '@/lib/music/voicings';
 import { playChord } from '@/lib/audio/playback';
+import {
+  parseProgression,
+  parseRomanNumeral,
+  romanNumeralToChord,
+  chordToRomanNumeral,
+  getFormatHint,
+  validateChordInput,
+} from '@/lib/music/chordParser';
 
 interface ProgressionChord {
   chord: Chord;
@@ -37,10 +45,6 @@ interface ProgressionBuilderProps {
   playOnClick?: boolean;
   /** Include bass note when playing */
   includeBassNote?: boolean;
-  /** Chord extension level - triads or 7th chords */
-  extensionLevel?: ChordExtensionLevel;
-  /** Callback when extension level changes */
-  onExtensionLevelChange?: (level: ChordExtensionLevel) => void;
   /** Key mode - major or minor */
   mode?: 'major' | 'minor';
   /** Callback when mode changes */
@@ -68,6 +72,16 @@ const degreeTextColors: Record<ScaleDegree, string> = {
   7: 'text-[#d4d4d8]',
 };
 
+const degreeBorderColors: Record<ScaleDegree, string> = {
+  1: 'border-[#fef3c7]/50',
+  2: 'border-[#c4b5fd]/50',
+  3: 'border-[#bbf7d0]/50',
+  4: 'border-[#fed7aa]/50',
+  5: 'border-[#fca5a5]/50',
+  6: 'border-[#93c5fd]/50',
+  7: 'border-[#d4d4d8]/50',
+};
+
 export function ProgressionBuilder({
   keyTonic,
   onKeyChange,
@@ -78,35 +92,258 @@ export function ProgressionBuilder({
   showColors = true,
   playOnClick = true,
   includeBassNote = true,
-  extensionLevel = '7ths',
-  onExtensionLevelChange,
   mode = 'major',
   onModeChange,
 }: ProgressionBuilderProps) {
-  // Get diatonic chords for the current key with the selected extension level and mode
-  const diatonicChords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
+  // Text input state
+  const [textInput, setTextInput] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
   
-  // Get the appropriate roman numerals based on mode
-  const romanNumerals = mode === 'minor' ? MINOR_DEGREE_TO_ROMAN : DEGREE_TO_ROMAN;
+  // Inline edit state
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  
+  // Insertion state
+  const [insertingAtIndex, setInsertingAtIndex] = useState<number | null>(null);
+  const [insertValue, setInsertValue] = useState('');
+  const [insertError, setInsertError] = useState<string | null>(null);
+  const insertInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hover state for insertion points
+  const [hoveredInsertIndex, setHoveredInsertIndex] = useState<number | null>(null);
+
+  // Focus edit input when it appears
+  useEffect(() => {
+    if (editingIndex !== null && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingIndex]);
+
+  // Focus insert input when it appears
+  useEffect(() => {
+    if (insertingAtIndex !== null && insertInputRef.current) {
+      insertInputRef.current.focus();
+    }
+  }, [insertingAtIndex]);
 
   // Play a chord sound
-  const playChordSound = async (chord: Chord) => {
+  const playChordSound = useCallback(async (chord: Chord) => {
     if (!playOnClick) return;
     const voicing = includeBassNote
       ? getSimpleVoicingWithBass(chord)
       : getSimpleVoicing(chord, 4);
     await playChord(voicing, '4n');
+  }, [playOnClick, includeBassNote]);
+
+  // Add chords from text input
+  const handleAddFromText = () => {
+    if (!textInput.trim()) return;
+    if (progression.length >= maxChords) {
+      setInputError(`Maximum ${maxChords} chords allowed`);
+      return;
+    }
+
+    const result = parseProgression(textInput);
+    
+    if (result.errors.length > 0) {
+      setInputError(result.errors[0].message);
+      return;
+    }
+
+    if (result.chords.length === 0) {
+      setInputError('No valid chords found');
+      return;
+    }
+
+    // Check if adding these would exceed max
+    const availableSlots = maxChords - progression.length;
+    const chordsToAdd = result.chords.slice(0, availableSlots);
+
+    // Convert parsed chords to Chord objects
+    const newChords: ProgressionChord[] = chordsToAdd.map(parsed => ({
+      chord: romanNumeralToChord(parsed, keyTonic, mode),
+      beats: 4,
+    }));
+
+    // Play the first chord
+    if (newChords.length > 0) {
+      playChordSound(newChords[0].chord);
+    }
+
+    onProgressionChange([...progression, ...newChords]);
+    setTextInput('');
+    setInputError(null);
+
+    if (result.chords.length > availableSlots) {
+      setInputError(`Only added ${availableSlots} chords (max ${maxChords} reached)`);
+    }
   };
 
-  // Add a chord to the progression
-  const handleAddChord = (chord: Chord) => {
-    if (progression.length >= maxChords) return;
+  // Handle text input keydown
+  const handleTextKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddFromText();
+    } else if (e.key === 'Escape') {
+      setTextInput('');
+      setInputError(null);
+    }
+  };
+
+  // Validate text input as user types
+  const handleTextChange = (value: string) => {
+    setTextInput(value);
     
-    playChordSound(chord);
-    onProgressionChange([
-      ...progression,
-      { chord, beats: 4 }, // Default to 4 beats
-    ]);
+    // Clear error when typing
+    if (inputError) {
+      setInputError(null);
+    }
+    
+    // Real-time validation (only show errors after a pause or on submit)
+    // For now, we just clear errors while typing
+  };
+
+  // Start editing a chord
+  const handleStartEdit = (index: number) => {
+    const chord = progression[index].chord;
+    const romanNumeral = chordToRomanNumeral(chord, keyTonic, mode);
+    setEditingIndex(index);
+    setEditValue(romanNumeral);
+    setEditError(null);
+  };
+
+  // Save edited chord
+  const handleSaveEdit = () => {
+    if (editingIndex === null) return;
+
+    const trimmed = editValue.trim();
+    if (!trimmed) {
+      // Revert on empty (don't delete)
+      setEditingIndex(null);
+      setEditValue('');
+      setEditError(null);
+      return;
+    }
+
+    const validation = validateChordInput(trimmed);
+    if (!validation.isValid) {
+      setEditError(validation.error || 'Invalid chord');
+      return;
+    }
+
+    const parsed = parseRomanNumeral(trimmed);
+    if (!parsed) {
+      setEditError('Invalid chord');
+      return;
+    }
+
+    const newChord = romanNumeralToChord(parsed, keyTonic, mode);
+    const newProgression = [...progression];
+    newProgression[editingIndex] = {
+      ...newProgression[editingIndex],
+      chord: newChord,
+    };
+
+    playChordSound(newChord);
+    onProgressionChange(newProgression);
+    setEditingIndex(null);
+    setEditValue('');
+    setEditError(null);
+  };
+
+  // Handle edit input keydown
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      setEditingIndex(null);
+      setEditValue('');
+      setEditError(null);
+    }
+  };
+
+  // Handle edit input change
+  const handleEditChange = (value: string) => {
+    setEditValue(value);
+    if (editError) {
+      setEditError(null);
+    }
+  };
+
+  // Start inserting at a position
+  const handleStartInsert = (index: number) => {
+    setInsertingAtIndex(index);
+    setInsertValue('');
+    setInsertError(null);
+    setHoveredInsertIndex(null);
+  };
+
+  // Save inserted chord
+  const handleSaveInsert = () => {
+    if (insertingAtIndex === null) return;
+
+    const trimmed = insertValue.trim();
+    if (!trimmed) {
+      // Cancel on empty
+      setInsertingAtIndex(null);
+      setInsertValue('');
+      setInsertError(null);
+      return;
+    }
+
+    if (progression.length >= maxChords) {
+      setInsertError(`Maximum ${maxChords} chords reached`);
+      return;
+    }
+
+    const validation = validateChordInput(trimmed);
+    if (!validation.isValid) {
+      setInsertError(validation.error || 'Invalid chord');
+      return;
+    }
+
+    const parsed = parseRomanNumeral(trimmed);
+    if (!parsed) {
+      setInsertError('Invalid chord');
+      return;
+    }
+
+    const newChord = romanNumeralToChord(parsed, keyTonic, mode);
+    const newProgression = [...progression];
+    newProgression.splice(insertingAtIndex, 0, {
+      chord: newChord,
+      beats: 4,
+    });
+
+    playChordSound(newChord);
+    onProgressionChange(newProgression);
+    setInsertingAtIndex(null);
+    setInsertValue('');
+    setInsertError(null);
+  };
+
+  // Handle insert input keydown
+  const handleInsertKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveInsert();
+    } else if (e.key === 'Escape') {
+      setInsertingAtIndex(null);
+      setInsertValue('');
+      setInsertError(null);
+    }
+  };
+
+  // Handle insert input change
+  const handleInsertChange = (value: string) => {
+    setInsertValue(value);
+    if (insertError) {
+      setInsertError(null);
+    }
   };
 
   // Remove a chord from the progression
@@ -114,48 +351,111 @@ export function ProgressionBuilder({
     const newProgression = [...progression];
     newProgression.splice(index, 1);
     onProgressionChange(newProgression);
+    
+    // Clear any editing state if we removed the edited chord
+    if (editingIndex === index) {
+      setEditingIndex(null);
+      setEditValue('');
+      setEditError(null);
+    } else if (editingIndex !== null && editingIndex > index) {
+      // Adjust editing index if we removed a chord before it
+      setEditingIndex(editingIndex - 1);
+    }
   };
 
   // Clear the entire progression
   const handleClear = () => {
     onProgressionChange([]);
+    setEditingIndex(null);
+    setEditValue('');
+    setEditError(null);
+    setInsertingAtIndex(null);
+    setInsertValue('');
+    setInsertError(null);
   };
 
-  // Render a chord button in the selection grid
-  const renderChordButton = (chord: Chord, index: number) => {
-    const degree = chord.degree;
-    const colorClass = showColors 
-      ? degreeColorClasses[degree] 
-      : 'bg-background-elevated border-text-muted/30 hover:bg-background-hover';
-    const textColor = showColors 
-      ? degreeTextColors[degree] 
-      : 'text-text-primary';
+  // Load a preset progression
+  const handleLoadPreset = (romanNumerals: string) => {
+    const result = parseProgression(romanNumerals);
+    if (result.success && result.chords.length > 0) {
+      const newProgression = result.chords.map(parsed => ({
+        chord: romanNumeralToChord(parsed, keyTonic, mode),
+        beats: 4,
+      }));
+      onProgressionChange(newProgression);
+      
+      // Play the first chord
+      if (newProgression.length > 0) {
+        playChordSound(newProgression[0].chord);
+      }
+    }
+  };
+
+  // Get roman numeral display for a chord
+  const getRomanNumeral = (chord: Chord): string => {
+    return chordToRomanNumeral(chord, keyTonic, mode);
+  };
+
+  // Render insertion point (the "+" button between chords)
+  const renderInsertionPoint = (index: number) => {
+    const isHovered = hoveredInsertIndex === index;
+    const isInserting = insertingAtIndex === index;
     const isDisabled = progression.length >= maxChords;
 
-    return (
-      <button
-        key={`chord-${degree}`}
-        onClick={() => handleAddChord(chord)}
-        disabled={isDisabled}
-        className={`
-          px-4 py-3 rounded-xl border-2 transition-all duration-200
-          min-w-[80px] font-medium
-          ${colorClass}
-          ${textColor}
-          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}
-        `}
-      >
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-lg font-bold">
-            {showChordNames ? getChordDisplayName(chord) : romanNumerals[degree]}
-          </span>
-          {showChordNames && (
-            <span className="text-xs text-text-muted">
-              {romanNumerals[degree]}
+    if (isInserting) {
+      return (
+        <div className="flex flex-col items-center mx-1">
+          <input
+            ref={insertInputRef}
+            type="text"
+            value={insertValue}
+            onChange={(e) => handleInsertChange(e.target.value)}
+            onKeyDown={handleInsertKeyDown}
+            onBlur={handleSaveInsert}
+            placeholder="V7"
+            className={`
+              w-16 px-2 py-1 text-sm text-center rounded
+              bg-background border-2 transition-colors
+              text-text-primary placeholder-text-muted
+              focus:outline-none focus:ring-2 focus:ring-accent
+              ${insertError ? 'border-error' : 'border-accent'}
+            `}
+          />
+          {insertError && (
+            <span className="text-xs text-error mt-1 whitespace-nowrap">
+              {insertError}
             </span>
           )}
         </div>
-      </button>
+      );
+    }
+
+    return (
+      <div
+        className="relative flex items-center justify-center mx-0.5 h-8"
+        onMouseEnter={() => !isDisabled && setHoveredInsertIndex(index)}
+        onMouseLeave={() => setHoveredInsertIndex(null)}
+      >
+        {/* Invisible hover target area */}
+        <div className="absolute inset-0 w-6 -mx-1" />
+        
+        {/* The dot / plus button */}
+        <button
+          onClick={() => !isDisabled && handleStartInsert(index)}
+          disabled={isDisabled}
+          className={`
+            flex items-center justify-center transition-all duration-200 ease-out
+            ${isHovered && !isDisabled
+              ? 'w-6 h-6 rounded-full bg-accent text-background text-sm font-bold opacity-100 scale-100'
+              : 'w-1.5 h-1.5 rounded-full bg-text-muted/30 opacity-60 scale-100'
+            }
+            ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:opacity-100'}
+          `}
+          title={isDisabled ? `Maximum ${maxChords} chords` : 'Insert chord'}
+        >
+          {isHovered && !isDisabled && '+'}
+        </button>
+      </div>
     );
   };
 
@@ -164,26 +464,68 @@ export function ProgressionBuilder({
     const { chord } = item;
     const degree = chord.degree;
     const textColor = showColors ? degreeTextColors[degree] : 'text-text-primary';
+    const borderColor = showColors ? degreeBorderColors[degree] : 'border-text-muted/30';
+    const isEditing = editingIndex === index;
+
+    if (isEditing) {
+      return (
+        <div key={`prog-${index}`} className="relative flex flex-col items-center">
+          <input
+            ref={editInputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => handleEditChange(e.target.value)}
+            onKeyDown={handleEditKeyDown}
+            onBlur={handleSaveEdit}
+            className={`
+              w-20 px-2 py-1.5 text-sm text-center rounded-lg font-bold
+              bg-background border-2 transition-colors
+              text-text-primary
+              focus:outline-none focus:ring-2 focus:ring-accent
+              ${editError ? 'border-error' : 'border-accent'}
+            `}
+          />
+          {editError && (
+            <span className="absolute -bottom-5 text-xs text-error whitespace-nowrap">
+              {editError}
+            </span>
+          )}
+        </div>
+      );
+    }
     
     return (
       <div
         key={`prog-${index}`}
         className="relative group"
       >
-        <div 
+        <button
+          onClick={() => handleStartEdit(index)}
           className={`
-            px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/30
-            ${textColor}
+            px-4 py-2 rounded-lg bg-background-elevated border
+            ${borderColor} ${textColor}
+            transition-all duration-150
+            hover:scale-105 hover:shadow-md
+            cursor-pointer
           `}
+          title="Click to edit"
         >
           <span className="font-bold">
-            {showChordNames ? getChordDisplayName(chord) : romanNumerals[degree]}
+            {showChordNames ? getChordDisplayName(chord) : getRomanNumeral(chord)}
           </span>
-        </div>
+          {showChordNames && (
+            <span className="ml-1.5 text-xs text-text-muted">
+              {getRomanNumeral(chord)}
+            </span>
+          )}
+        </button>
         
         {/* Remove button */}
         <button
-          onClick={() => handleRemoveChord(index)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRemoveChord(index);
+          }}
           className="
             absolute -top-2 -right-2 
             w-5 h-5 rounded-full 
@@ -199,6 +541,21 @@ export function ProgressionBuilder({
       </div>
     );
   };
+
+  // Get presets based on mode
+  const presets = mode === 'major'
+    ? [
+        { label: 'I-V-vi-IV', value: 'I, V, vi, IV' },
+        { label: 'ii-V-I', value: 'ii, V, I' },
+        { label: 'I-IV-V-I', value: 'I, IV, V, I' },
+        { label: 'vi-IV-I-V', value: 'vi, IV, I, V' },
+      ]
+    : [
+        { label: 'i-VII-VI-v', value: 'i, VII, VI, v' },
+        { label: 'i-iv-v-i', value: 'i, iv, v, i' },
+        { label: 'i-VI-III-VII', value: 'i, VI, III, VII' },
+        { label: 'i-iv-VII-III', value: 'i, iv, VII, III' },
+      ];
 
   return (
     <div className="space-y-4">
@@ -251,43 +608,48 @@ export function ProgressionBuilder({
             </div>
           </div>
         )}
-        
-        {/* Extension level toggle */}
-        {onExtensionLevelChange && (
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg overflow-hidden border border-text-muted/30">
-              <button
-                onClick={() => onExtensionLevelChange('triads')}
-                className={`px-3 py-1.5 text-sm transition-colors ${
-                  extensionLevel === 'triads'
-                    ? 'bg-accent text-background'
-                    : 'bg-background-elevated text-text-secondary hover:bg-background-hover'
-                }`}
-              >
-                Triads
-              </button>
-              <button
-                onClick={() => onExtensionLevelChange('7ths')}
-                className={`px-3 py-1.5 text-sm transition-colors ${
-                  extensionLevel === '7ths'
-                    ? 'bg-accent text-background'
-                    : 'bg-background-elevated text-text-secondary hover:bg-background-hover'
-                }`}
-              >
-                7ths
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Chord selection grid */}
+      {/* Text input for adding chords */}
       <div>
-        <p className="text-sm text-text-secondary mb-2">
-          Click chords to build your progression:
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {diatonicChords.map((chord, i) => renderChordButton(chord, i))}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => handleTextChange(e.target.value)}
+              onKeyDown={handleTextKeyDown}
+              placeholder="I, V, vi, IV"
+              className={`
+                w-full px-4 py-2.5 rounded-lg
+                bg-background-elevated border transition-colors
+                text-text-primary placeholder-text-muted
+                focus:outline-none focus:ring-2 focus:ring-accent
+                ${inputError ? 'border-error' : 'border-text-muted/30'}
+              `}
+            />
+          </div>
+          <button
+            onClick={handleAddFromText}
+            disabled={!textInput.trim() || progression.length >= maxChords}
+            className="
+              px-4 py-2.5 rounded-lg font-medium
+              bg-accent text-background
+              hover:bg-accent/90 transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed
+            "
+          >
+            Add
+          </button>
+        </div>
+        
+        {/* Error message or format hint */}
+        <div className="mt-1.5 min-h-[1.25rem]">
+          {inputError ? (
+            <p className="text-sm text-error">{inputError}</p>
+          ) : (
+            <p className="text-xs text-text-muted">{getFormatHint()}</p>
+          )}
         </div>
       </div>
 
@@ -309,11 +671,20 @@ export function ProgressionBuilder({
         
         {progression.length === 0 ? (
           <div className="py-4 px-6 rounded-lg border-2 border-dashed border-text-muted/30 text-text-muted text-center">
-            Click chords above to start building
+            Type chords above or use a preset below
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-background-elevated/50">
-            {progression.map((item, i) => renderProgressionChord(item, i))}
+          <div className="flex flex-wrap items-center gap-y-3 p-3 rounded-lg bg-background-elevated/50 min-h-[56px]">
+            {/* Insertion point at the start */}
+            {renderInsertionPoint(0)}
+            
+            {progression.map((item, i) => (
+              <div key={`chord-wrapper-${i}`} className="flex items-center">
+                {renderProgressionChord(item, i)}
+                {/* Insertion point after this chord */}
+                {renderInsertionPoint(i + 1)}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -322,124 +693,15 @@ export function ProgressionBuilder({
       <div>
         <p className="text-sm text-text-secondary mb-2">Quick presets:</p>
         <div className="flex flex-wrap gap-2">
-          {mode === 'major' ? (
-            <>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // I
-                    { chord: chords[4], beats: 4 }, // V
-                    { chord: chords[5], beats: 4 }, // vi
-                    { chord: chords[3], beats: 4 }, // IV
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                I-V-vi-IV
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[1], beats: 4 }, // ii
-                    { chord: chords[4], beats: 4 }, // V
-                    { chord: chords[0], beats: 4 }, // I
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                ii-V-I
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // I
-                    { chord: chords[3], beats: 4 }, // IV
-                    { chord: chords[4], beats: 4 }, // V
-                    { chord: chords[0], beats: 4 }, // I
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                I-IV-V-I
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[5], beats: 4 }, // vi
-                    { chord: chords[3], beats: 4 }, // IV
-                    { chord: chords[0], beats: 4 }, // I
-                    { chord: chords[4], beats: 4 }, // V
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                vi-IV-I-V
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // i
-                    { chord: chords[6], beats: 4 }, // VII
-                    { chord: chords[5], beats: 4 }, // VI
-                    { chord: chords[4], beats: 4 }, // v
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                i-VII-VI-v
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // i
-                    { chord: chords[3], beats: 4 }, // iv
-                    { chord: chords[4], beats: 4 }, // v
-                    { chord: chords[0], beats: 4 }, // i
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                i-iv-v-i
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // i
-                    { chord: chords[5], beats: 4 }, // VI
-                    { chord: chords[2], beats: 4 }, // III
-                    { chord: chords[6], beats: 4 }, // VII
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                i-VI-III-VII
-              </button>
-              <button
-                onClick={() => {
-                  const chords = getAllDiatonicChords(keyTonic, extensionLevel, mode);
-                  onProgressionChange([
-                    { chord: chords[0], beats: 4 }, // i
-                    { chord: chords[3], beats: 4 }, // iv
-                    { chord: chords[6], beats: 4 }, // VII
-                    { chord: chords[2], beats: 4 }, // III
-                  ]);
-                }}
-                className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
-              >
-                i-iv-VII-III
-              </button>
-            </>
-          )}
+          {presets.map((preset) => (
+            <button
+              key={preset.label}
+              onClick={() => handleLoadPreset(preset.value)}
+              className="px-3 py-1 text-sm rounded-lg bg-background-elevated border border-text-muted/30 text-text-secondary hover:bg-background-hover transition-colors"
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

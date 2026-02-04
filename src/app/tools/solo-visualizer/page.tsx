@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import type { NoteName, Chord, ChordExtensionLevel } from '@/lib/music/types';
+import type { NoteName, Chord } from '@/lib/music/types';
 import { FretboardDisplay } from '@/components/shared/FretboardDisplay';
 import { ProgressionBuilder } from '@/components/shared/ProgressionBuilder';
 import type { FretboardNote } from '@/lib/music/fretboard';
@@ -31,7 +31,6 @@ export default function SoloVisualizerPage() {
   const [focusMode, setFocusMode] = useState(false);
   const [focusNoteCount, setFocusNoteCount] = useState(4);
   const [fretRange, setFretRange] = useState({ min: 0, max: 15 });
-  const [extensionLevel, setExtensionLevel] = useState<ChordExtensionLevel>('7ths');
 
   // Get the currently active chord
   const activeChord = progression[activeChordIndex]?.chord ?? null;
@@ -287,12 +286,6 @@ export default function SoloVisualizerPage() {
               maxChords={8}
               showChordNames={true}
               showColors={true}
-              extensionLevel={extensionLevel}
-              onExtensionLevelChange={(level) => {
-                setExtensionLevel(level);
-                // Clear progression when changing extension level to avoid mismatched chords
-                setProgression([]);
-              }}
               mode={keyMode}
               onModeChange={(newMode) => {
                 setKeyMode(newMode);
