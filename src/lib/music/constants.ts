@@ -3,7 +3,7 @@
  * Static data for music theory calculations
  */
 
-import type { NoteName, DiatonicChord, ScaleDegree, ChordQuality, RomanNumeral } from './types';
+import type { NoteName, DiatonicChord, ScaleDegree, ChordQuality, RomanNumeral, ChordExtensionLevel } from './types';
 
 // All 12 chromatic notes in order
 export const CHROMATIC_NOTES: NoteName[] = [
@@ -38,6 +38,62 @@ export const MAJOR_KEY_CHORD_QUALITIES: Record<ScaleDegree, ChordQuality> = {
   7: 'min7b5',
 };
 
+// Map from scale degree to triad quality in major (no 7ths)
+export const MAJOR_KEY_TRIAD_QUALITIES: Record<ScaleDegree, ChordQuality> = {
+  1: 'maj',
+  2: 'min',
+  3: 'min',
+  4: 'maj',
+  5: 'maj',  // V as major triad (not dominant 7)
+  6: 'min',
+  7: 'dim',  // vii° is diminished triad
+};
+
+// Map from scale degree to its chord quality in natural minor (7th chords)
+// Natural minor: i - ii° - III - iv - v - VI - VII
+export const MINOR_KEY_CHORD_QUALITIES: Record<ScaleDegree, ChordQuality> = {
+  1: 'min7',      // i7
+  2: 'min7b5',    // ii°7 (half-diminished)
+  3: 'maj7',      // IIImaj7
+  4: 'min7',      // iv7
+  5: 'min7',      // v7 (natural minor has minor v, not dominant V)
+  6: 'maj7',      // VImaj7
+  7: '7',         // VII7 (dominant)
+};
+
+// Map from scale degree to triad quality in natural minor (no 7ths)
+export const MINOR_KEY_TRIAD_QUALITIES: Record<ScaleDegree, ChordQuality> = {
+  1: 'min',
+  2: 'dim',
+  3: 'maj',
+  4: 'min',
+  5: 'min',  // Natural minor has minor v
+  6: 'maj',
+  7: 'maj',
+};
+
+// Get chord qualities based on extension level and mode
+export function getChordQualitiesForLevel(
+  level: ChordExtensionLevel,
+  mode: 'major' | 'minor' = 'major'
+): Record<ScaleDegree, ChordQuality> {
+  if (mode === 'minor') {
+    return level === 'triads' ? MINOR_KEY_TRIAD_QUALITIES : MINOR_KEY_CHORD_QUALITIES;
+  }
+  return level === 'triads' ? MAJOR_KEY_TRIAD_QUALITIES : MAJOR_KEY_CHORD_QUALITIES;
+}
+
+// Roman numerals for minor keys
+export const MINOR_DEGREE_TO_ROMAN: Record<ScaleDegree, string> = {
+  1: 'i',
+  2: 'ii°',
+  3: 'III',
+  4: 'iv',
+  5: 'v',
+  6: 'VI',
+  7: 'VII',
+};
+
 // Map from scale degree to roman numeral
 export const DEGREE_TO_ROMAN: Record<ScaleDegree, RomanNumeral> = {
   1: 'I',
@@ -56,6 +112,7 @@ export const CHORD_INTERVALS: Record<ChordQuality, number[]> = {
   '7': [0, 4, 7, 10],         // 1, 3, 5, b7 (dominant 7th)
   'min7b5': [0, 3, 6, 10],    // 1, b3, b5, b7 (half-diminished)
   'dim7': [0, 3, 6, 9],       // 1, b3, b5, bb7 (fully diminished)
+  'dim': [0, 3, 6],           // 1, b3, b5 (diminished triad)
   'maj': [0, 4, 7],           // 1, 3, 5
   'min': [0, 3, 7],           // 1, b3, 5
 };
@@ -67,6 +124,7 @@ export const CHORD_QUALITY_DISPLAY: Record<ChordQuality, string> = {
   '7': '7',
   'min7b5': 'm7b5',
   'dim7': 'dim7',
+  'dim': 'dim',
   'maj': '',
   'min': 'm',
 };

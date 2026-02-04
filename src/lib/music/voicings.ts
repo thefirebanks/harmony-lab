@@ -18,6 +18,7 @@ const JAZZ_VOICING_INTERVALS: Record<ChordQuality, number[]> = {
   '7': [4, 10, 14, 17],        // 3-b7-9-11 (or 3-7-9-13 for fuller sound)
   'min7b5': [3, 6, 10, 15],    // b3-b5-b7-11
   'dim7': [3, 6, 9, 12],       // b3-b5-bb7-root
+  'dim': [3, 6, 12],           // b3-b5-root octave (diminished triad)
   'maj': [4, 7, 12],           // 3-5-root octave
   'min': [3, 7, 12],           // b3-5-root octave
 };
@@ -31,6 +32,7 @@ const SIMPLE_VOICING_INTERVALS: Record<ChordQuality, number[]> = {
   '7': [0, 4, 7, 10],          // 1-3-5-b7
   'min7b5': [0, 3, 6, 10],     // 1-b3-b5-b7
   'dim7': [0, 3, 6, 9],        // 1-b3-b5-bb7
+  'dim': [0, 3, 6],            // 1-b3-b5 (diminished triad)
   'maj': [0, 4, 7],            // 1-3-5
   'min': [0, 3, 7],            // 1-b3-5
 };

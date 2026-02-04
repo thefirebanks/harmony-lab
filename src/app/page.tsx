@@ -48,24 +48,59 @@ export default function Home() {
       name: 'Tonic Target Practice',
       description: 'Build ii-V-I progressions in random keys to develop functional harmony intuition.',
       status: 'available' as const,
+      path: '/games/tonic-target',
     },
     {
       id: 'note-identification',
       name: 'Note Identification',
       description: 'Hear a note, then choose the correct pitch from multiple options.',
       status: 'available' as const,
+      path: '/games/note-identification',
+    },
+    {
+      id: 'interval-games',
+      name: 'Interval Flash',
+      description: 'Identify intervals under time pressure. Speed defeats calculation!',
+      status: 'available' as const,
+      path: '/games/interval-games',
     },
     {
       id: 'chord-crush',
       name: 'Chord Crush Clone',
       description: 'Identify the missing chord in a progression.',
       status: 'coming-soon' as const,
+      path: '/games/chord-crush',
     },
     {
       id: 'modal-interchange',
       name: 'Modal Interchange Spotter',
       description: 'Identify borrowed chords from parallel modes.',
       status: 'coming-soon' as const,
+      path: '/games/modal-interchange',
+    },
+  ];
+
+  const tools = [
+    {
+      id: 'solo-visualizer',
+      name: 'Solo Note Visualizer',
+      description: 'See which notes work for soloing over any chord progression. Includes focus mode for practice.',
+      status: 'available' as const,
+      path: '/tools/solo-visualizer',
+    },
+    {
+      id: 'scale-positions',
+      name: 'Scale Position Trainer',
+      description: 'Learn CAGED and 3-notes-per-string scale positions across the fretboard.',
+      status: 'coming-soon' as const,
+      path: '/tools/scale-positions',
+    },
+    {
+      id: 'backing-tracks',
+      name: 'Backing Track Generator',
+      description: 'Generate backing tracks for any chord progression with drums, bass, and piano.',
+      status: 'coming-soon' as const,
+      path: '/tools/backing-tracks',
     },
   ];
 
@@ -108,9 +143,10 @@ export default function Home() {
 
       {/* Main content */}
       <main className="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+        {/* Games Section */}
         <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-6">Games</h2>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-12">
           {games.map((game) => (
             <div
               key={game.id}
@@ -131,10 +167,48 @@ export default function Home() {
               
               {game.status === 'available' ? (
                 <Link
-                  href={`/games/${game.id}`}
+                  href={game.path}
                   className="inline-block px-4 py-2 bg-[var(--accent)] text-[var(--background)] font-medium rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
                 >
                   Play
+                </Link>
+              ) : (
+                <span className="inline-block px-4 py-2 bg-[var(--background-hover)] text-[var(--text-muted)] font-medium rounded-lg">
+                  Coming Soon
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Tools Section */}
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-6">Practice Tools</h2>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {tools.map((tool) => (
+            <div
+              key={tool.id}
+              className={`
+                p-6 rounded-xl border-2 transition-all duration-200
+                ${tool.status === 'available'
+                  ? 'bg-[var(--background-elevated)] border-[var(--text-muted)]/20 hover:border-[var(--accent)]/50 hover:bg-[var(--background-hover)]'
+                  : 'bg-[var(--background-elevated)]/50 border-[var(--text-muted)]/10 opacity-60'
+                }
+              `}
+            >
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                {tool.name}
+              </h3>
+              <p className="text-[var(--text-secondary)] text-sm mb-4">
+                {tool.description}
+              </p>
+              
+              {tool.status === 'available' ? (
+                <Link
+                  href={tool.path}
+                  className="inline-block px-4 py-2 bg-[var(--accent)] text-[var(--background)] font-medium rounded-lg hover:bg-[var(--accent-hover)] transition-colors"
+                >
+                  Open
                 </Link>
               ) : (
                 <span className="inline-block px-4 py-2 bg-[var(--background-hover)] text-[var(--text-muted)] font-medium rounded-lg">

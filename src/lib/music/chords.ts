@@ -3,9 +3,9 @@
  * Functions for building and working with chords
  */
 
-import type { NoteName, Chord, ChordQuality, ScaleDegree, Pitch } from './types';
-import { CHORD_INTERVALS, CHORD_QUALITY_DISPLAY, MAJOR_KEY_CHORD_QUALITIES } from './constants';
-import { getNoteIndex, getNoteAtIndex, getMajorScale } from './scales';
+import type { NoteName, Chord, ChordQuality, ScaleDegree, Pitch, ChordExtensionLevel } from './types';
+import { CHORD_INTERVALS, CHORD_QUALITY_DISPLAY, getChordQualitiesForLevel } from './constants';
+import { getNoteIndex, getNoteAtIndex, getMajorScale, getMinorScale } from './scales';
 
 /**
  * Get the notes that make up a chord
@@ -27,38 +27,41 @@ export function createChord(root: NoteName, quality: ChordQuality, degree: Scale
 }
 
 /**
- * Build the diatonic chord for a scale degree in a major key
+ * Build the diatonic chord for a scale degree in a key
  * @param tonic - The tonic of the key
  * @param degree - The scale degree (1-7)
+ * @param extensionLevel - Whether to use triads or 7th chords (default: '7ths')
+ * @param mode - 'major' or 'minor' (default: 'major')
  * @returns The diatonic chord for that degree
  */
-export function getDiatonicChord(tonic: NoteName, degree: ScaleDegree): Chord {
-  const scale = getMajorScale(tonic);
+export function getDiatonicChord(
+  tonic: NoteName, 
+  degree: ScaleDegree,
+  extensionLevel: ChordExtensionLevel = '7ths',
+  mode: 'major' | 'minor' = 'major'
+): Chord {
+  const scale = mode === 'major' ? getMajorScale(tonic) : getMinorScale(tonic);
   const root = scale[degree - 1];
-  const quality = MAJOR_KEY_CHORD_QUALITIES[degree];
+  const qualities = getChordQualitiesForLevel(extensionLevel, mode);
+  const quality = qualities[degree];
 
-  const chord = createChord(root, quality, degree);
-
-  // Debug logging for A# major I chord
-  if (tonic === 'A#' && degree === 1) {
-    console.log('[A# Debug] Key:', tonic, 'Degree:', degree);
-    console.log('[A# Debug] Scale:', scale);
-    console.log('[A# Debug] Root:', root, 'Quality:', quality);
-    const chordNotes = getChordNotes(root, quality);
-    console.log('[A# Debug] Chord notes:', chordNotes);
-  }
-
-  return chord;
+  return createChord(root, quality, degree);
 }
 
 /**
- * Get all 7 diatonic chords for a major key
+ * Get all 7 diatonic chords for a key
  * @param tonic - The tonic of the key
+ * @param extensionLevel - Whether to use triads or 7th chords (default: '7ths')
+ * @param mode - 'major' or 'minor' (default: 'major')
  * @returns Array of all 7 diatonic chords
  */
-export function getAllDiatonicChords(tonic: NoteName): Chord[] {
+export function getAllDiatonicChords(
+  tonic: NoteName,
+  extensionLevel: ChordExtensionLevel = '7ths',
+  mode: 'major' | 'minor' = 'major'
+): Chord[] {
   const degrees: ScaleDegree[] = [1, 2, 3, 4, 5, 6, 7];
-  return degrees.map(degree => getDiatonicChord(tonic, degree));
+  return degrees.map(degree => getDiatonicChord(tonic, degree, extensionLevel, mode));
 }
 
 /**

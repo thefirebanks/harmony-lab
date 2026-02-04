@@ -10,15 +10,18 @@ import type { TonicTargetSettings } from '@/games/tonic-target/types';
 import { defaultTonicTargetSettings, difficultyPresets as tonicDifficultyPresets } from '@/games/tonic-target/types';
 import type { NoteIdentificationSettings } from '@/games/note-identification/types';
 import { defaultNoteIdentificationSettings, difficultyPresets as noteDifficultyPresets } from '@/games/note-identification/types';
+import type { IntervalFlashSettings } from '@/games/interval-games/types';
+import { defaultIntervalFlashSettings, intervalFlashDifficultyPresets } from '@/games/interval-games/types';
 
 interface SettingsState {
   // Global settings
   masterVolume: number;
-  
-  // Tonic Target settings
+
+  // Game settings
   tonicTarget: TonicTargetSettings;
   noteIdentification: NoteIdentificationSettings;
-  
+  intervalFlash: IntervalFlashSettings;
+
   // Actions
   setMasterVolume: (volume: number) => void;
   setTonicTargetSetting: <K extends keyof TonicTargetSettings>(
@@ -33,6 +36,12 @@ interface SettingsState {
   ) => void;
   setNoteIdentificationDifficulty: (level: DifficultyLevel) => void;
   resetNoteIdentificationSettings: () => void;
+  setIntervalFlashSetting: <K extends keyof IntervalFlashSettings>(
+    key: K,
+    value: IntervalFlashSettings[K]
+  ) => void;
+  setIntervalFlashDifficulty: (level: DifficultyLevel) => void;
+  resetIntervalFlashSettings: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -42,17 +51,18 @@ export const useSettingsStore = create<SettingsState>()(
       masterVolume: 0.8,
       tonicTarget: defaultTonicTargetSettings,
       noteIdentification: defaultNoteIdentificationSettings,
-      
+      intervalFlash: defaultIntervalFlashSettings,
+
       // Actions
       setMasterVolume: (volume) => set({ masterVolume: volume }),
-      
+
       setTonicTargetSetting: (key, value) => set((state) => ({
         tonicTarget: {
           ...state.tonicTarget,
           [key]: value,
         },
       })),
-      
+
       setDifficulty: (level) => {
         const preset = tonicDifficultyPresets[level];
         set((state) => ({
@@ -89,6 +99,28 @@ export const useSettingsStore = create<SettingsState>()(
       resetNoteIdentificationSettings: () => set({
         noteIdentification: defaultNoteIdentificationSettings,
       }),
+
+      setIntervalFlashSetting: (key, value) => set((state) => ({
+        intervalFlash: {
+          ...state.intervalFlash,
+          [key]: value,
+        },
+      })),
+
+      setIntervalFlashDifficulty: (level) => {
+        const preset = intervalFlashDifficultyPresets[level];
+        set((state) => ({
+          intervalFlash: {
+            ...state.intervalFlash,
+            ...preset,
+            difficulty: level,
+          },
+        }));
+      },
+
+      resetIntervalFlashSettings: () => set({
+        intervalFlash: defaultIntervalFlashSettings,
+      }),
     }),
     {
       name: 'harmony-lab-settings',
@@ -105,6 +137,10 @@ export const useSettingsStore = create<SettingsState>()(
         const noteIdentification = {
           ...current.noteIdentification,
           ...(persistedState?.noteIdentification ?? {}),
+        };
+        const intervalFlash = {
+          ...current.intervalFlash,
+          ...(persistedState?.intervalFlash ?? {}),
         };
         if (tonicTarget.roundsPerSession === ('infinite' as never) || !Number.isFinite(tonicTarget.roundsPerSession)) {
           tonicTarget.roundsPerSession = current.tonicTarget.roundsPerSession;
@@ -127,14 +163,29 @@ export const useSettingsStore = create<SettingsState>()(
         if (!Number.isFinite(noteIdentification.roundsPerSession)) {
           noteIdentification.roundsPerSession = current.noteIdentification.roundsPerSession;
         }
+        // Interval Flash migrations
+        if (!intervalFlash.sessionMode) {
+          intervalFlash.sessionMode = current.intervalFlash.sessionMode;
+        }
+        if (!intervalFlash.timeLimitSeconds) {
+          intervalFlash.timeLimitSeconds = current.intervalFlash.timeLimitSeconds;
+        }
+        if (!Number.isFinite(intervalFlash.roundsPerSession)) {
+          intervalFlash.roundsPerSession = current.intervalFlash.roundsPerSession;
+        }
+        if (!intervalFlash.enabledIntervals || intervalFlash.enabledIntervals.length === 0) {
+          intervalFlash.enabledIntervals = current.intervalFlash.enabledIntervals;
+        }
         merged.tonicTarget = tonicTarget;
         merged.noteIdentification = noteIdentification;
+        merged.intervalFlash = intervalFlash;
         return merged;
       },
       partialize: (state) => ({
         masterVolume: state.masterVolume,
         tonicTarget: state.tonicTarget,
         noteIdentification: state.noteIdentification,
+        intervalFlash: state.intervalFlash,
       }),
     }
   )

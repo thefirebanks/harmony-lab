@@ -195,16 +195,4 @@ export function getRandomTheoryCard(): TheoryCard {
   return theoryCards[index];
 }
 
-/**
- * Get a theory card by ID
- */
-export function getTheoryCardById(id: string): TheoryCard | undefined {
-  return theoryCards.find(card => card.id === id);
-}
 
-/**
- * Get all theory cards
- */
-export function getAllTheoryCards(): TheoryCard[] {
-  return theoryCards;
-}

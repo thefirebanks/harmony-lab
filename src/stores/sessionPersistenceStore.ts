@@ -8,6 +8,7 @@ import { persist } from 'zustand/middleware';
 import type { SessionStats } from '@/lib/game-engine/types';
 import type { TonicTargetRound, TonicTargetAnswer } from '@/games/tonic-target/types';
 import type { NoteIdentificationRound, NoteIdentificationAnswer } from '@/games/note-identification/types';
+import type { IntervalFlashRound, IntervalFlashAnswer } from '@/games/interval-games/types';
 
 /**
  * Serializable session stats (Date converted to ISO string)
@@ -40,9 +41,20 @@ export interface PausedNoteIdentificationSession {
   pausedAt: string; // ISO string
 }
 
+/**
+ * Paused Interval Flash session
+ */
+export interface PausedIntervalFlashSession {
+  round: IntervalFlashRound;
+  answer: IntervalFlashAnswer;
+  session: SerializableSessionStats;
+  pausedAt: string; // ISO string
+}
+
 interface SessionPersistenceState {
   pausedTonicTarget: PausedTonicTargetSession | null;
   pausedNoteIdentification: PausedNoteIdentificationSession | null;
+  pausedIntervalFlash: PausedIntervalFlashSession | null;
 
   // Actions
   saveTonicTargetSession: (
@@ -55,12 +67,19 @@ interface SessionPersistenceState {
     answer: NoteIdentificationAnswer,
     session: SessionStats
   ) => void;
+  saveIntervalFlashSession: (
+    round: IntervalFlashRound,
+    answer: IntervalFlashAnswer,
+    session: SessionStats
+  ) => void;
   clearTonicTargetSession: () => void;
   clearNoteIdentificationSession: () => void;
+  clearIntervalFlashSession: () => void;
 
   // Helpers
   hasTonicTargetSession: () => boolean;
   hasNoteIdentificationSession: () => boolean;
+  hasIntervalFlashSession: () => boolean;
   getTonicTargetSession: () => {
     round: TonicTargetRound;
     answer: TonicTargetAnswer;
@@ -69,6 +88,11 @@ interface SessionPersistenceState {
   getNoteIdentificationSession: () => {
     round: NoteIdentificationRound;
     answer: NoteIdentificationAnswer;
+    session: SessionStats;
+  } | null;
+  getIntervalFlashSession: () => {
+    round: IntervalFlashRound;
+    answer: IntervalFlashAnswer;
     session: SessionStats;
   } | null;
 }
@@ -106,6 +130,7 @@ export const useSessionPersistenceStore = create<SessionPersistenceState>()(
     (set, get) => ({
       pausedTonicTarget: null,
       pausedNoteIdentification: null,
+      pausedIntervalFlash: null,
 
       saveTonicTargetSession: (round, answer, session) => {
         // Only save if there's meaningful progress
@@ -139,12 +164,32 @@ export const useSessionPersistenceStore = create<SessionPersistenceState>()(
         });
       },
 
+      saveIntervalFlashSession: (round, answer, session) => {
+        // Only save if there's meaningful progress
+        if (session.roundsCompleted === 0) {
+          return;
+        }
+
+        set({
+          pausedIntervalFlash: {
+            round,
+            answer,
+            session: serializeSession(session),
+            pausedAt: new Date().toISOString(),
+          },
+        });
+      },
+
       clearTonicTargetSession: () => {
         set({ pausedTonicTarget: null });
       },
 
       clearNoteIdentificationSession: () => {
         set({ pausedNoteIdentification: null });
+      },
+
+      clearIntervalFlashSession: () => {
+        set({ pausedIntervalFlash: null });
       },
 
       hasTonicTargetSession: () => {
@@ -167,6 +212,16 @@ export const useSessionPersistenceStore = create<SessionPersistenceState>()(
         return true;
       },
 
+      hasIntervalFlashSession: () => {
+        const paused = get().pausedIntervalFlash;
+        if (!paused) return false;
+        if (isSessionExpired(paused.pausedAt)) {
+          set({ pausedIntervalFlash: null });
+          return false;
+        }
+        return true;
+      },
+
       getTonicTargetSession: () => {
         const paused = get().pausedTonicTarget;
         if (!paused || isSessionExpired(paused.pausedAt)) {
@@ -181,6 +236,18 @@ export const useSessionPersistenceStore = create<SessionPersistenceState>()(
 
       getNoteIdentificationSession: () => {
         const paused = get().pausedNoteIdentification;
+        if (!paused || isSessionExpired(paused.pausedAt)) {
+          return null;
+        }
+        return {
+          round: paused.round,
+          answer: paused.answer,
+          session: deserializeSession(paused.session),
+        };
+      },
+
+      getIntervalFlashSession: () => {
+        const paused = get().pausedIntervalFlash;
         if (!paused || isSessionExpired(paused.pausedAt)) {
           return null;
         }

@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Harmony Lab is a music practice games platform built with Next.js 16 and Bun. The first game is **Tonic Target Practice** - a drill for building ii-V-I (and similar) progressions in random keys, designed to build functional harmony intuition.
+Harmony Lab is a music practice games platform built with Next.js 16 and Bun. It includes:
+
+1. **Tonic Target Practice** - A drill for building ii-V-I (and similar) progressions in random keys
+2. **Solo Visualizer** (`/tools/solo-visualizer`) - A tool for visualizing which notes work over chord progressions on guitar
 
 ## Commands
 
@@ -33,6 +36,9 @@ bun run deploy              # Build and deploy to Cloudflare
    - `chords.ts` - Chord construction, diatonic chord lookup
    - `progressions.ts` - Build ii-V-I, validate answers
    - `voicings.ts` - Generate piano voicings from chords
+   - `chordParser.ts` - Parse roman numeral notation (`I`, `V7`, `bVII`, etc.)
+   - `fretboard.ts` - Guitar fretboard note mapping
+   - `chordTones.ts` - Chord tone analysis for improvisation
 
 2. **Audio Engine** (`src/lib/audio/`) - Wraps Tone.js with Salamander piano samples
    - `engine.ts` - Sampler setup, audio context management
@@ -41,9 +47,10 @@ bun run deploy              # Build and deploy to Cloudflare
 
 3. **Game Engine** (`src/lib/game-engine/`) - Generic types for game state, rounds, validation
 
-4. **Game Definitions** (`src/games/tonic-target/`) - Game-specific logic separated from UI
-   - `logic.ts` - `generateRound()`, `validateAnswer()`, `getNextSlot()`
-   - `config.ts` - Game configuration, theory card generators
+4. **Game Definitions** (`src/games/`) - Game-specific logic separated from UI
+   - `tonic-target/` - Tonic Target game logic
+   - `interval-games/` - Interval recognition game logic
+   - `note-identification/` - Note identification game logic
 
 5. **State Management** (`src/stores/`) - Zustand stores with localStorage persistence
    - `gameStore.ts` - Game state, round management, playback actions
@@ -53,10 +60,30 @@ bun run deploy              # Build and deploy to Cloudflare
 ### Component Organization
 
 - `components/ui/` - Primitives (Button, Card)
-- `components/shared/` - Platform-wide (GameShell, TheoryCard, SettingsPanel, ProgressPanel)
-- `components/games/tonic-target/` - Game-specific components
+- `components/shared/` - Platform-wide (GameShell, TheoryCard, SettingsPanel, ProgressPanel, ProgressionBuilder, FretboardDisplay)
+- `components/games/tonic-target/` - Tonic Target game components
+- `components/games/interval-games/` - Interval game components
+- `components/games/note-identification/` - Note identification game components
 
-## Key Concepts
+## Key Features
+
+### Solo Visualizer (`/tools/solo-visualizer`)
+
+A tool for guitarists to visualize which notes work over chord progressions:
+
+- **Fretboard visualization** - Shows notes on guitar fretboard with colors
+- **Chord tones** - Root, 3rd, 5th, 7th highlighted prominently
+- **Scale tones** - Safe passing tones shown with lighter opacity
+- **Avoid tones** - Notes to avoid shown in red (optional)
+- **Focus mode** - Randomly limit to 3-5 notes for practice
+- **Fret range slider** - Focus on specific positions
+
+**Progression Builder:**
+- Type progressions in roman numeral notation: `I, V, vi, IV`
+- Supports 7th chords: `Imaj7, V7, iim7, viim7b5`
+- Supports borrowed chords: `bVII, bIII, #iv`
+- Click existing chords to edit in-place
+- Hover between chords to insert via `+` button
 
 ### Tonic Target Game Flow
 
@@ -91,6 +118,13 @@ interface TonicTargetRound {
 
 3. **Progression for vii target**: Uses vi-IV-vii (provides practice identifying the leading tone).
 
+4. **Chord parser defaults**: Parser defaults to triads when no extension is typed (`V` = major triad, `V7` = dominant 7th).
+
 ## Testing
 
 Unit tests are in `tests/unit/` mirroring the source structure. E2E tests use Playwright in `tests/e2e/`.
+
+Key test files:
+- `tests/unit/music/chordParser.test.ts` - 63 tests for roman numeral parsing
+- `tests/unit/music/chords.test.ts` - Chord construction tests
+- `tests/unit/music/scales.test.ts` - Scale generation tests
