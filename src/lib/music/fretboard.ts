@@ -501,8 +501,6 @@ export function getScalePositionNotes(
   tonic: NoteName,
   mode: 'major' | 'minor' = 'major'
 ): FretboardNote[] {
-  const scale = mode === 'major' ? getMajorScale(tonic) : getMinorScale(tonic);
-  
   // Find the root fret on the root string
   const rootFret = getFretForNoteOnString(tonic, position.rootString, 0, 12);
   if (rootFret === null) return [];

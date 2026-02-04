@@ -19,7 +19,6 @@ import {
   getUniquePitches,
   type ScalePosition,
 } from '@/lib/music/fretboard';
-import { GUITAR_TUNING } from '@/games/interval-games/types';
 
 describe('getNoteAtPosition', () => {
   test('returns open string notes correctly (standard tuning)', () => {

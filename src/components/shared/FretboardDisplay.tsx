@@ -69,16 +69,6 @@ export function FretboardDisplay({
     ? stringSpacing * 5 + 80 
     : nutWidth + totalFrets * fretSpacing + 20;
 
-  // Create a lookup for quick access to highlighted notes
-  const noteMap = useMemo(() => {
-    const map = new Map<string, FretboardNote>();
-    for (const note of highlightedNotes) {
-      const key = `${note.string}-${note.fret}`;
-      map.set(key, note);
-    }
-    return map;
-  }, [highlightedNotes]);
-
   // Check if a note is clickable
   const isClickable = useMemo(() => {
     if (!clickableNotes) return (note: FretboardNote) => true;

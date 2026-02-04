@@ -4,7 +4,7 @@
  */
 
 import type { NoteName, Chord, ChordQuality, ScaleDegree, Pitch, ChordExtensionLevel } from './types';
-import { CHORD_INTERVALS, CHORD_QUALITY_DISPLAY, MAJOR_KEY_CHORD_QUALITIES, getChordQualitiesForLevel } from './constants';
+import { CHORD_INTERVALS, CHORD_QUALITY_DISPLAY, getChordQualitiesForLevel } from './constants';
 import { getNoteIndex, getNoteAtIndex, getMajorScale, getMinorScale } from './scales';
 
 /**
@@ -45,18 +45,7 @@ export function getDiatonicChord(
   const qualities = getChordQualitiesForLevel(extensionLevel, mode);
   const quality = qualities[degree];
 
-  const chord = createChord(root, quality, degree);
-
-  // Debug logging for A# major I chord
-  if (tonic === 'A#' && degree === 1) {
-    console.log('[A# Debug] Key:', tonic, 'Degree:', degree);
-    console.log('[A# Debug] Scale:', scale);
-    console.log('[A# Debug] Root:', root, 'Quality:', quality);
-    const chordNotes = getChordNotes(root, quality);
-    console.log('[A# Debug] Chord notes:', chordNotes);
-  }
-
-  return chord;
+  return createChord(root, quality, degree);
 }
 
 /**

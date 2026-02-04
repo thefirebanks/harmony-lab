@@ -11,7 +11,7 @@ import type { NoteName, Chord } from '@/lib/music/types';
 import { FretboardDisplay } from '@/components/shared/FretboardDisplay';
 import { ProgressionBuilder } from '@/components/shared/ProgressionBuilder';
 import type { FretboardNote } from '@/lib/music/fretboard';
-import { getScaleOnFretboard, getNoteFretboardPositions } from '@/lib/music/fretboard';
+import { getScaleOnFretboard } from '@/lib/music/fretboard';
 import { getChordTonesWithRoles, getAvoidNotes, selectFocusNotes } from '@/lib/music/chordTones';
 
 interface ProgressionChord {

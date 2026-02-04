@@ -51,17 +51,6 @@ interface ProgressionBuilderProps {
   onModeChange?: (mode: 'major' | 'minor') => void;
 }
 
-// CSS classes for degree colors
-const degreeColorClasses: Record<ScaleDegree, string> = {
-  1: 'bg-[#fef3c7]/20 border-[#fef3c7]/50 hover:bg-[#fef3c7]/30',
-  2: 'bg-[#c4b5fd]/20 border-[#c4b5fd]/50 hover:bg-[#c4b5fd]/30',
-  3: 'bg-[#bbf7d0]/20 border-[#bbf7d0]/50 hover:bg-[#bbf7d0]/30',
-  4: 'bg-[#fed7aa]/20 border-[#fed7aa]/50 hover:bg-[#fed7aa]/30',
-  5: 'bg-[#fca5a5]/20 border-[#fca5a5]/50 hover:bg-[#fca5a5]/30',
-  6: 'bg-[#93c5fd]/20 border-[#93c5fd]/50 hover:bg-[#93c5fd]/30',
-  7: 'bg-[#d4d4d8]/20 border-[#d4d4d8]/50 hover:bg-[#d4d4d8]/30',
-};
-
 const degreeTextColors: Record<ScaleDegree, string> = {
   1: 'text-[#fef3c7]',
   2: 'text-[#c4b5fd]',
