@@ -42,13 +42,24 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [draftName, setDraftName] = useState(name);
+  const [showSaved, setShowSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const initials = useMemo(() => getInitials(name), [name]);
+  const nameHasChanged = draftName !== name;
+  const initials = useMemo(() => getInitials(draftName || name), [draftName, name]);
 
   // Animation state
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // Sync draft name when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setDraftName(name);
+      setShowSaved(false);
+    }
+  }, [isOpen, name]);
 
   useEffect(() => {
     if (isOpen) {
@@ -179,13 +190,33 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div className="space-y-6">
             <section className="space-y-3">
               <h3 className="text-sm uppercase tracking-wide text-text-muted">Name</h3>
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Add your name"
-                className="w-full px-3 py-2 rounded-lg bg-background border border-text-muted/30 text-text-primary focus:outline-none focus:border-accent"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={draftName}
+                  onChange={(event) => {
+                    setDraftName(event.target.value);
+                    setShowSaved(false);
+                  }}
+                  placeholder="Add your name"
+                  className="flex-1 px-3 py-2 rounded-lg bg-background border border-text-muted/30 text-text-primary focus:outline-none focus:border-accent"
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!nameHasChanged}
+                  onClick={() => {
+                    setName(draftName);
+                    setShowSaved(true);
+                    setTimeout(() => setShowSaved(false), 2000);
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+              {showSaved && (
+                <p className="text-sm text-success">Name saved!</p>
+              )}
             </section>
 
             <section className="space-y-4">

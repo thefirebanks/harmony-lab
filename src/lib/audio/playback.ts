@@ -149,6 +149,26 @@ export async function playNote(
 }
 
 /**
+ * Play multiple notes simultaneously (harmonic)
+ * @param notes - Array of note strings (e.g., ["C4", "E4"])
+ * @param duration - Duration in Tone.js notation
+ */
+export async function playNotes(
+  notes: string[],
+  duration: string = '2n'
+): Promise<void> {
+  await startAudioContext();
+
+  const sampler = getSampler();
+  if (!sampler || !isAudioReady()) {
+    console.warn('Audio not ready, cannot play notes');
+    return;
+  }
+
+  sampler.triggerAttackRelease(notes, duration);
+}
+
+/**
  * Stop all currently playing sounds
  */
 export function stopAll(): void {

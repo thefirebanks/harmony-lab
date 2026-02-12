@@ -11,6 +11,13 @@ import { TimerDisplay } from './TimerDisplay';
 import { IntervalButtons } from './IntervalButtons';
 import { IntervalFeedback } from './IntervalFeedback';
 
+const PLAYBACK_STYLE_LABELS: Record<string, string> = {
+  melodic: '',
+  harmonic: 'Harmonic',
+  'melodic-then-harmonic': 'Melodic + Harmonic',
+  'harmonic-then-melodic': 'Harmonic + Melodic',
+};
+
 interface IntervalFlashGameProps {
   onViewProgress?: () => void;
 }
@@ -163,31 +170,43 @@ export function IntervalFlashGame({ onViewProgress }: IntervalFlashGameProps) {
         isActive={timerActive}
       />
 
-      {/* Direction indicator */}
-      <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-        {round.direction === 'ascending' ? (
+      {/* Direction & playback style indicator */}
+      <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+        {settings.playbackStyle !== 'harmonic' && (
+          <div className="flex items-center gap-2">
+            {round.direction === 'ascending' ? (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+                <span>Ascending</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+                <span>Descending</span>
+              </>
+            )}
+          </div>
+        )}
+        {PLAYBACK_STYLE_LABELS[settings.playbackStyle] && (
           <>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 15l7-7 7 7"
-              />
-            </svg>
-            <span>Ascending</span>
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-            <span>Descending</span>
+            {settings.playbackStyle !== 'harmonic' && (
+              <span className="text-[var(--text-muted)]/50">|</span>
+            )}
+            <span className="text-sm">{PLAYBACK_STYLE_LABELS[settings.playbackStyle]}</span>
           </>
         )}
       </div>

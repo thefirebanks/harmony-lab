@@ -13,9 +13,10 @@ import {
 } from '@/games/interval-games/logic';
 import { intervalFlashConfig } from '@/games/interval-games/config';
 import { createInitialSession } from '@/lib/game-engine/types';
-import { playNote } from '@/lib/audio';
+import { playNote, playNotes } from '@/lib/audio';
 import { useSettingsStore } from './settingsStore';
 import { useSessionPersistenceStore } from './sessionPersistenceStore';
+import { useProgressStore } from './progressStore';
 
 interface IntervalFlashGameState {
   // Game state
@@ -108,10 +109,29 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
     // Auto-play interval after short delay
     setTimeout(() => {
       get().playInterval();
-      // Start timer after playing interval
+
+      // Start timer after interval finishes playing
+      // Adjust delay based on playback style
+      const settings = useSettingsStore.getState().intervalFlash;
+      let timerDelay: number;
+      switch (settings.playbackStyle) {
+        case 'harmonic':
+          timerDelay = 600;
+          break;
+        case 'melodic-then-harmonic':
+          timerDelay = 2000; // 400ms gap + note + 600ms gap + harmonic
+          break;
+        case 'harmonic-then-melodic':
+          timerDelay = 2000; // harmonic + 800ms gap + note + 400ms gap + note
+          break;
+        case 'melodic':
+        default:
+          timerDelay = 800;
+          break;
+      }
       setTimeout(() => {
         get().startTimer();
-      }, 800); // Start timer after both notes have played
+      }, timerDelay);
     }, 300);
   },
 
@@ -140,6 +160,9 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
     const theoryCards = intervalFlashConfig.getTheoryCards(round, result.isCorrect);
     const settings = useSettingsStore.getState().intervalFlash;
 
+    // Record round result to progress store (using root note as the key)
+    useProgressStore.getState().recordRoundResult(round.rootNote.note, result.isCorrect);
+
     // Check if session should end (time mode)
     const timeExpired =
       settings.sessionMode === 'time' &&
@@ -150,18 +173,29 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
       settings.sessionMode === 'rounds' &&
       session.currentRound >= settings.roundsPerSession;
 
+    const isSessionComplete = timeExpired || roundsComplete;
+
+    const updatedSession = {
+      ...session,
+      roundsCompleted: session.roundsCompleted + 1,
+      roundsCorrect: session.roundsCorrect + (result.isCorrect ? 1 : 0),
+      currentStreak: result.isCorrect ? session.currentStreak + 1 : 0,
+    };
+
     set({
       feedback: result,
       showFeedback: true,
       theoryCard: theoryCards.length > 0 ? theoryCards[0] : null,
-      session: {
-        ...session,
-        roundsCompleted: session.roundsCompleted + 1,
-        roundsCorrect: session.roundsCorrect + (result.isCorrect ? 1 : 0),
-        currentStreak: result.isCorrect ? session.currentStreak + 1 : 0,
-      },
-      isSessionComplete: timeExpired || roundsComplete,
+      session: updatedSession,
+      isSessionComplete,
     });
+
+    // Save session to progress store when complete
+    if (isSessionComplete) {
+      useProgressStore
+        .getState()
+        .saveSession(updatedSession.roundsCompleted, updatedSession.roundsCorrect, session.startTime);
+    }
   },
 
   handleTimeout: () => {
@@ -227,15 +261,44 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
 
     set({ isPlaying: true });
 
-    try {
-      // Play root note
-      const rootNoteString = pitchToNoteString(round.rootNote);
-      await playNote(rootNoteString, '4n');
+    const settings = useSettingsStore.getState().intervalFlash;
+    const rootNoteString = pitchToNoteString(round.rootNote);
+    const targetNoteString = pitchToNoteString(round.targetNote);
 
-      // Wait then play target note
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      const targetNoteString = pitchToNoteString(round.targetNote);
-      await playNote(targetNoteString, '4n');
+    try {
+      switch (settings.playbackStyle) {
+        case 'harmonic': {
+          // Play both notes simultaneously
+          await playNotes([rootNoteString, targetNoteString], '2n');
+          break;
+        }
+        case 'melodic-then-harmonic': {
+          // Play ascending/melodic first, then both together
+          await playNote(rootNoteString, '4n');
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          await playNote(targetNoteString, '4n');
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          await playNotes([rootNoteString, targetNoteString], '2n');
+          break;
+        }
+        case 'harmonic-then-melodic': {
+          // Play both together first, then ascending/melodic
+          await playNotes([rootNoteString, targetNoteString], '2n');
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          await playNote(rootNoteString, '4n');
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          await playNote(targetNoteString, '4n');
+          break;
+        }
+        case 'melodic':
+        default: {
+          // Play root note then target note (ascending/melodic)
+          await playNote(rootNoteString, '4n');
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          await playNote(targetNoteString, '4n');
+          break;
+        }
+      }
     } finally {
       setTimeout(() => set({ isPlaying: false }), 500);
     }
@@ -313,9 +376,25 @@ export const useIntervalFlashStore = create<IntervalFlashGameState>((set, get) =
     // Play the interval and start timer after restoring
     setTimeout(() => {
       get().playInterval();
+
+      const settings = useSettingsStore.getState().intervalFlash;
+      let timerDelay: number;
+      switch (settings.playbackStyle) {
+        case 'harmonic':
+          timerDelay = 600;
+          break;
+        case 'melodic-then-harmonic':
+        case 'harmonic-then-melodic':
+          timerDelay = 2000;
+          break;
+        case 'melodic':
+        default:
+          timerDelay = 800;
+          break;
+      }
       setTimeout(() => {
         get().startTimer();
-      }, 800);
+      }, timerDelay);
     }, 300);
 
     return true;

@@ -14,4 +14,5 @@ export {
   playProgression,
   playVoicingSequence,
   playNote,
+  playNotes,
 } from './playback';

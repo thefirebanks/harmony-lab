@@ -148,6 +148,36 @@ export function IntervalGameSettingsPanel({
             </button>
           </div>
 
+          {/* Playback Style */}
+          <div>
+            <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+              Listening Mode
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { value: 'melodic', label: 'Melodic', desc: 'Notes one after another' },
+                  { value: 'harmonic', label: 'Harmonic', desc: 'Both notes together' },
+                  { value: 'melodic-then-harmonic', label: 'Melodic + Harmonic', desc: 'Sequential, then together' },
+                  { value: 'harmonic-then-melodic', label: 'Harmonic + Melodic', desc: 'Together, then sequential' },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => onSettingChange('playbackStyle', option.value)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    settings.playbackStyle === option.value
+                      ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--background)]'
+                      : 'bg-[var(--background-elevated)] border-[var(--text-muted)]/20 text-[var(--text-primary)] hover:border-[var(--accent)]/50'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{option.label}</div>
+                  <div className="text-xs opacity-75">{option.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Time Limit */}
           <div>
             <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">

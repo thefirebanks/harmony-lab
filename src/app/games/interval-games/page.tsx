@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { GameShell, LoadingScreen, ProfileModal } from '@/components/shared';
+import { GameShell, LoadingScreen, ProfileModal, ProgressPanel } from '@/components/shared';
 import { IntervalFlashGame, IntervalGameSettingsPanel } from '@/components/games/interval-games';
 import { useAudioStore, useSettingsStore, useIntervalFlashStore } from '@/stores';
 
@@ -30,6 +30,7 @@ export default function IntervalGamesPage() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialChecked, setTutorialChecked] = useState(false);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
@@ -116,7 +117,7 @@ export default function IntervalGamesPage() {
       <GameShell
         title="Interval Flash"
         onSettingsClick={() => setSettingsOpen(true)}
-        onProgressClick={() => {}}
+        onProgressClick={() => setProgressOpen(true)}
         onHelpClick={() => setShowTutorial(true)}
         onProfileClick={() => setProfileOpen(true)}
       >
@@ -147,6 +148,7 @@ export default function IntervalGamesPage() {
           onReset={resetIntervalFlashSettings}
         />
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
         {showTutorial && (
           <TutorialOverlay onClose={handleCloseTutorial} />
         )}
@@ -160,7 +162,7 @@ export default function IntervalGamesPage() {
       <GameShell
         title="Interval Flash"
         onSettingsClick={() => setSettingsOpen(true)}
-        onProgressClick={() => {}}
+        onProgressClick={() => setProgressOpen(true)}
         onHelpClick={() => setShowTutorial(true)}
         onProfileClick={() => setProfileOpen(true)}
       >
@@ -174,6 +176,7 @@ export default function IntervalGamesPage() {
           onReset={resetIntervalFlashSettings}
         />
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
       </GameShell>
     );
   }
@@ -184,7 +187,7 @@ export default function IntervalGamesPage() {
       <GameShell
         title="Interval Flash"
         onSettingsClick={() => setSettingsOpen(true)}
-        onProgressClick={() => {}}
+        onProgressClick={() => setProgressOpen(true)}
         onHelpClick={() => setShowTutorial(true)}
         onProfileClick={() => setProfileOpen(true)}
       >
@@ -206,6 +209,7 @@ export default function IntervalGamesPage() {
           onReset={resetIntervalFlashSettings}
         />
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
       </GameShell>
     );
   }
@@ -216,7 +220,7 @@ export default function IntervalGamesPage() {
       <GameShell
         title="Interval Flash"
         onSettingsClick={() => setSettingsOpen(true)}
-        onProgressClick={() => {}}
+        onProgressClick={() => setProgressOpen(true)}
         onHelpClick={() => setShowTutorial(true)}
         onProfileClick={() => setProfileOpen(true)}
       >
@@ -252,6 +256,7 @@ export default function IntervalGamesPage() {
           onReset={resetIntervalFlashSettings}
         />
         <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+        <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
         {showTutorial && <TutorialOverlay onClose={handleCloseTutorial} />}
       </GameShell>
     );
@@ -261,11 +266,11 @@ export default function IntervalGamesPage() {
     <GameShell
       title="Interval Flash"
       onSettingsClick={() => setSettingsOpen(true)}
-      onProgressClick={() => {}}
+      onProgressClick={() => setProgressOpen(true)}
       onHelpClick={() => setShowTutorial(true)}
       onProfileClick={() => setProfileOpen(true)}
     >
-      <IntervalFlashGame />
+      <IntervalFlashGame onViewProgress={() => setProgressOpen(true)} />
       <IntervalGameSettingsPanel
         isOpen={settingsOpen}
         settings={settings}
@@ -275,6 +280,7 @@ export default function IntervalGamesPage() {
         onReset={resetIntervalFlashSettings}
       />
       <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProgressPanel isOpen={progressOpen} onClose={() => setProgressOpen(false)} />
       {showTutorial && (
         <TutorialOverlay onClose={handleCloseTutorial} />
       )}

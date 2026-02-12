@@ -161,7 +161,7 @@ export interface IntervalFlashSettings {
 
   // Audio
   soundSource: 'piano' | 'guitar';
-  playbackStyle: 'melodic' | 'harmonic';
+  playbackStyle: 'melodic' | 'harmonic' | 'melodic-then-harmonic' | 'harmonic-then-melodic';
 
   // Display
   showFretboardOnFeedback: boolean;

@@ -12,7 +12,7 @@ interface TimerDisplayProps {
 }
 
 export function TimerDisplay({ timeRemaining, totalTime, isActive }: TimerDisplayProps) {
-  const seconds = Math.ceil(timeRemaining / 1000);
+  const seconds = timeRemaining / 1000;
   const percentage = (timeRemaining / totalTime) * 100;
 
   // Determine urgency level based on time remaining
